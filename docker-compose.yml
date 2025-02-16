@@ -1,0 +1,50 @@
+# Define the services section
+services:
+  # Define the postgres service
+  postgres:
+    # Specify the Docker image to use for the service
+    image: postgres:16
+
+    # Set the container name to my_postgres
+    container_name: my_postgres
+
+    # Set environment variables for the PostgreSQL container
+    environment:
+      # Set the PostgreSQL username to postgres
+      POSTGRES_USER: postgres
+
+      # Set the PostgreSQL password to postgres
+      POSTGRES_PASSWORD: postgres
+
+      # Set the PostgreSQL database name to tasks
+      POSTGRES_DB: tasks
+
+    # Map the container's port 5432 to the host's port 5432
+    ports:
+      - '5432:5432'
+
+    # Mount the postgres_data volume to the container's /var/lib/postgresql/data directory
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    # Configure a healthcheck for the container
+    healthcheck:
+      # Specify the command to run for the healthcheck
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d tasks']
+
+      # Set the interval between healthcheck runs to 10 seconds
+      interval: 10s
+
+      # Set the timeout for the healthcheck to 5 seconds
+      timeout: 5s
+
+      # Set the number of retries for the healthcheck to 5
+      retries: 5
+
+    # Restart the container unless explicitly stopped
+    restart: unless-stopped
+
+# Define the volumes section
+volumes:
+  # Define the postgres_data volume
+  postgres_data:
