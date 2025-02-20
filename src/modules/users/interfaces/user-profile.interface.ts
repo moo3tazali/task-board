@@ -1,11 +1,15 @@
 import { Role, User } from '@prisma/client';
 
-export class UserProfile implements Omit<User, 'passwordHash'> {
+export class UserProfile
+  implements Omit<User, 'passwordHash' | 'createdAt' | 'updatedAt'>
+{
   id: string;
   username: string;
   email: string;
   avatarPath: string | null;
+  /**
+   * List of user roles
+   * @example ['ADMIN', 'USER']
+   */
   roles: Role[];
-  createdAt: Date;
-  updatedAt: Date;
 }

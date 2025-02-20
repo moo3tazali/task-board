@@ -1,14 +1,15 @@
 import { Request as ExpressRequest } from 'express';
-import { Payload } from './modules/users/model';
+import { User } from '@prisma/client';
 
 declare module 'express' {
   interface Request {
     // Add the user property to the Request object
-    user: Payload;
+    user: Omit<User, 'passwordHash'>;
   }
 }
 
 declare global {
   type Req = ExpressRequest;
   type MulterFile = Express.Multer.File;
+  type Auth = Omit<User, 'passwordHash'>;
 }

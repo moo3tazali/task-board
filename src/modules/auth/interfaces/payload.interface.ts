@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 
-export interface Payload {
+export class Payload {
   sub: string;
   username: string;
   email: string;

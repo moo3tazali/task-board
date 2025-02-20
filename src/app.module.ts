@@ -1,17 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 
-import {
-  appConfig,
-  ConfigSchema,
-  authConfig,
-  AuthConfig,
-  TConfigService,
-} from './config';
-import { AuthGuard, RolesGuard } from './modules/auth/guards';
+import { appConfig, ConfigSchema, authConfig } from './config';
 import { PrismaModule, AuthModule, UsersModule } from './modules';
 
 /**
@@ -31,23 +21,10 @@ import { PrismaModule, AuthModule, UsersModule } from './modules';
       },
     }),
 
-    // Configure the authentication module
-    JwtModule.registerAsync({
-      global: true,
-      inject: [ConfigService],
-      useFactory: (config: TConfigService) => ({
-        ...config.get<AuthConfig>('auth'),
-      }),
-    }),
-
     // Import modules
     PrismaModule,
     AuthModule,
     UsersModule,
-  ],
-  providers: [
-    { provide: APP_GUARD, useClass: AuthGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule {}

@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthConfig, ConfigType } from 'src/config';
 import { IS_PUBLIC_KEY } from '../decorators';
 import { Payload } from '../interfaces';
+import { UserService } from 'src/modules/user/user.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -18,6 +19,7 @@ export class AuthGuard implements CanActivate {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<ConfigType>,
     private readonly reflector: Reflector,
+    private readonly userService: UserService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,7 +46,13 @@ export class AuthGuard implements CanActivate {
         },
       );
 
-      request.user = payload;
+      const user = await this.userService.findById(payload.sub);
+
+      if (!user) {
+        throw new UnauthorizedException();
+      }
+
+      request.user = user;
     } catch {
       throw new UnauthorizedException();
     }

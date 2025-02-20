@@ -8,7 +8,6 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 
 import { ROLES_KEY } from '../decorators';
-import { Payload } from '../interfaces';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -26,7 +25,7 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<Req>();
 
-    const user = request?.user as Payload;
+    const user = request?.user;
 
     return requiredRoles.every((role) => user.roles.includes(role));
   }

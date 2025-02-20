@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
 import { Auth } from '../auth/decorators';
@@ -14,15 +14,13 @@ export class UsersController {
    */
   @ApiBearerAuth()
   @Get('me')
-  public async getProfile(
-    @Auth('sub') id: string,
-  ): Promise<UserProfile> {
-    const user = await this.usersService.profile(id);
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    return user;
+  public getProfile(@Auth() user: Auth): UserProfile {
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      avatarPath: user.avatarPath,
+      roles: user.roles,
+    } satisfies UserProfile;
   }
 }
