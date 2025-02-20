@@ -3,7 +3,7 @@ import {
   ExecutionContext,
   Injectable,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 
@@ -16,10 +16,9 @@ export class RolesGuard implements CanActivate {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<
+      UserRole[]
+    >(ROLES_KEY, [context.getHandler(), context.getClass()]);
 
     if (!requiredRoles) return true;
 
@@ -27,6 +26,8 @@ export class RolesGuard implements CanActivate {
 
     const user = request?.user;
 
-    return requiredRoles.every((role) => user.roles.includes(role));
+    return requiredRoles.every((role: UserRole) =>
+      user.roles.includes(role),
+    );
   }
 }

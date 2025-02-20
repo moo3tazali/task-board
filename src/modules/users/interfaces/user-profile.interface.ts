@@ -1,4 +1,4 @@
-import { Role, User } from '@prisma/client';
+import { UserRole, User } from '@prisma/client';
 
 export class UserProfile
   implements Omit<User, 'passwordHash' | 'createdAt' | 'updatedAt'>
@@ -11,5 +11,5 @@ export class UserProfile
    * List of user roles
    * @example ['ADMIN', 'USER']
    */
-  roles: Role[];
+  roles: UserRole[];
 }

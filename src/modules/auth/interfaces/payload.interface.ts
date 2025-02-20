@@ -1,9 +1,9 @@
-import { Role } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 
 export class Payload {
   sub: string;
   username: string;
   email: string;
   avatarPath: string;
-  roles: Role[];
+  roles: UserRole[];
 }
