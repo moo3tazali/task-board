@@ -58,6 +58,7 @@ model User {
   boards        BoardMember[]
   activities    ActivityLog[]
   notifications Notification[]
+  ownedBoards   Board[]
 
   @@map("users")
 }
@@ -66,6 +67,8 @@ model Board {
   id          String @id @default(uuid())
   title       String
   description String
+  ownerId     String
+  owner       User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -74,15 +77,16 @@ model Board {
   members    BoardMember[]
   activities ActivityLog[]
 
+  @@unique([ownerId, id])
   @@map("boards")
 }
 
 model BoardMember {
-  userId  String
-  boardId String
-  role    BoardPermission[] @default([VIEW])
-  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  board   Board             @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  userId      String
+  boardId     String
+  permissions BoardPermission[] @default([VIEW, EDIT, DELETE, COMMENT, MANAGE_MEMBERS])
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board       Board             @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
