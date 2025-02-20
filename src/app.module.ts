@@ -1,21 +1,18 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 import {
-  localDbConfig,
-  prodDbConfig,
   appConfig,
   ConfigSchema,
-  TConfigService,
   authConfig,
   AuthConfig,
+  TConfigService,
 } from './config';
-import { UsersModule } from './users/users.module';
-import { User } from './users/entities';
-import { AuthGuard, RolesGuard } from './users/guards';
+import { AuthGuard, RolesGuard } from './modules/auth/guards';
+import { PrismaModule, AuthModule, UsersModule } from './modules';
 
 /**
  * Application module.
@@ -25,23 +22,13 @@ import { AuthGuard, RolesGuard } from './users/guards';
   imports: [
     // Configure the application configuration module
     ConfigModule.forRoot({
-      load: [appConfig, localDbConfig, prodDbConfig, authConfig],
+      load: [appConfig, authConfig],
       isGlobal: true,
       validationSchema: ConfigSchema,
       validationOptions: {
         // Enable strict mode to ensure that all required configuration properties are provided
         abortEarly: true,
       },
-    }),
-
-    // Configure the TypeORM database connection
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (config: TConfigService) => ({
-        ...(await config.get('localDb')),
-        entities: [User],
-      }),
     }),
 
     // Configure the authentication module
@@ -54,6 +41,8 @@ import { AuthGuard, RolesGuard } from './users/guards';
     }),
 
     // Import modules
+    PrismaModule,
+    AuthModule,
     UsersModule,
   ],
   providers: [

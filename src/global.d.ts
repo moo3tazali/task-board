@@ -1,5 +1,5 @@
 import { Request as ExpressRequest } from 'express';
-import { Payload } from './users/model';
+import { Payload } from './modules/users/model';
 
 declare module 'express' {
   interface Request {

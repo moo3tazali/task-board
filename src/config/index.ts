@@ -1,6 +1,5 @@
 import * as Joi from 'joi';
 import { ConfigService } from '@nestjs/config';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 import { AuthConfig } from './auth.config';
 import { AppConfig } from './app.config';
@@ -15,8 +14,6 @@ export interface ConfigType {
    * This property is used to configure the TypeORM database connection.
    */
   app: AppConfig;
-  localDb: TypeOrmModuleOptions;
-  prodDb: TypeOrmModuleOptions;
   auth: AuthConfig;
 }
 
@@ -28,52 +25,15 @@ export class TConfigService extends ConfigService<ConfigType> {}
  * This schema defines the expected structure and constraints for the configuration object.
  */
 export const ConfigSchema = Joi.object({
+  // APP ENVS VARIABLES
   BASE_URL: Joi.string().default('http://localhost:3000'),
-
   PORT: Joi.number().default(3000),
-
   PREFIX: Joi.string().default(''),
 
-  /**
-   * Database host.
-   * Defaults to 'localhost' if not provided.
-   */
-  DB_HOST: Joi.string().default('localhost'),
+  // DB ENVS VARIABLES
+  DATABASE_URL: Joi.string().required(),
 
-  /**
-   * Database port.
-   * Defaults to 5432 if not provided.
-   */
-  DB_PORT: Joi.number().default(5432),
-
-  /**
-   * Database username.
-   * Required.
-   */
-  DB_USERNAME: Joi.string().required(),
-
-  /**
-   * Database password.
-   * Required.
-   */
-  DB_PASSWORD: Joi.string().required(),
-
-  /**
-   * Database name.
-   * Required.
-   */
-  DB_NAME: Joi.string().required(),
-
-  /**
-   * Database synchronization flag.
-   * 0: disable synchronization
-   * 1: enable synchronization
-   * Required.
-   * Warning: Be careful when enabling synchronization, as it will drop all tables and recreate them.
-   */
-  DB_SYNC: Joi.number().valid(0, 1).required(),
-
-  // JWT
+  // AUTH ENVS VARIABLES
   JWT_SECRET: Joi.string().required(),
   JWT_EXPIRES_IN: Joi.string().required(),
 });
@@ -81,5 +41,3 @@ export const ConfigSchema = Joi.object({
 // Export the required configuration interfaces and schemas
 export * from './app.config';
 export * from './auth.config';
-export * from './local-db.config';
-export * from './prod-db.config';
