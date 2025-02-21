@@ -84,7 +84,7 @@ model Board {
 model BoardMember {
   userId      String
   boardId     String
-  permissions BoardPermission[] @default([VIEW, EDIT, DELETE, COMMENT, MANAGE_MEMBERS])
+  permissions BoardPermission[] @default([VIEW])
   user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   board       Board             @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
@@ -125,6 +125,7 @@ model Task {
   labels      TaskLabel[]
   activities  ActivityLog[]
   attachments Attachment[]
+  comments    Comment[]
 
   @@index([title])
   @@map("tasks")
@@ -160,6 +161,18 @@ model TaskLabel {
 
   @@id([taskId, labelId])
   @@map("task_labels")
+}
+
+model Comment {
+  id      String @id @default(uuid())
+  content String
+  taskId  String
+  task    Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
 }
 
 // Must have either taskId or boardId
