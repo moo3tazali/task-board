@@ -5,10 +5,10 @@ export interface ApiResponse<T> {
     error: boolean;
     validationsErrors: { [key: string]: string[] } | null;
   };
-  data: T | ApiPaginatedResponse<T> | null;
+  data: T | Pagination<T> | null;
 }
 
-export interface ApiPaginatedResponse<T> {
+export interface Pagination<T> {
   items: T[];
   meta: {
     count: number;

@@ -23,8 +23,7 @@
     "docker:start": "docker start my_postgres",
     "docker:stop": "docker stop my_postgres",
     "db:reset": "npx prisma migrate reset && npx prisma db push",
-    "db:generate": "npx prisma generate",
-    "db:push": "npx prisma db push",
+    "db:update": "npx prisma generate && npx prisma db push",
     "db:studio": "npx prisma studio"
   },
   "dependencies": {

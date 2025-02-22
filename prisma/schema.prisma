@@ -77,16 +77,17 @@ model Board {
   members    BoardMember[]
   activities ActivityLog[]
 
-  @@unique([ownerId, id])
+  @@unique([ownerId, title])
   @@map("boards")
 }
 
 model BoardMember {
   userId      String
-  boardId     String
-  permissions BoardPermission[] @default([VIEW])
   user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  boardId     String
   board       Board             @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  permissions BoardPermission[] @default([VIEW])
+  isOwner     Boolean           @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
