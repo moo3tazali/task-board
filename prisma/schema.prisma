@@ -19,16 +19,38 @@ enum UserRole {
 }
 
 enum BoardPermission {
-  VIEW
-  EDIT
-  DELETE
-  COMMENT
-  MANAGE_MEMBERS
+  BOARD_UPDATE
+  BOARD_DELETE
+
+  BOARD_MEMBERS_CREATE
+  BOARD_MEMBERS_UPDATE
+  BOARD_MEMBERS_DELETE
+
+  LIST_CREATE
+  LIST_UPDATE
+  LIST_DELETE
+
+  TASK_CREATE
+  TASK_UPDATE
+  TASK_DELETE
+  TASK_ASSIGN
+  TASK_UNASSIGN
+  TASK_LABEL_CREATE
+  TASK_LABEL_UPDATE
+  TASK_LABEL_DELETE
+  TASK_DUE_DATE_UPDATE
+  TASK_STATUS_UPDATE
+  TASK_COMMENT_CREATE
+  TASK_COMMENT_UPDATE
+  TASK_COMMENT_DELETE
+  TASK_ATTACHMENT_CREATE
+  TASK_ATTACHMENT_DELETE
 }
 
 enum TaskStatus {
   TODO
   IN_PROGRESS
+  NEED_REVIEW
   DONE
   OVERDUE
 }
@@ -86,7 +108,7 @@ model BoardMember {
   user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   boardId     String
   board       Board             @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  permissions BoardPermission[] @default([VIEW])
+  permissions BoardPermission[] @default([])
   isOwner     Boolean           @default(false)
 
   createdAt DateTime @default(now())
@@ -124,9 +146,9 @@ model Task {
 
   assignees   TaskAssignee[]
   labels      TaskLabel[]
+  comments    Comment[]
   activities  ActivityLog[]
   attachments Attachment[]
-  comments    Comment[]
 
   @@index([title])
   @@map("tasks")
