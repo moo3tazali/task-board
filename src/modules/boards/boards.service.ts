@@ -138,8 +138,8 @@ export class BoardsService {
   public async updatePermissions(
     boardId: string,
     dto: { userId: string; permissions: BoardPermission[] },
-  ) {
-    return await this.db.board.update({
+  ): Promise<Member[]> {
+    const updatedBoard = await this.db.board.update({
       where: { id: boardId },
       data: {
         members: {
@@ -156,8 +156,10 @@ export class BoardsService {
           },
         },
       },
-      include: { members: true },
+      include: { members: this.membersSelect },
     });
+
+    return updatedBoard.members;
   }
 
   public async deleteMembers(

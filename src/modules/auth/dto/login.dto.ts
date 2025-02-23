@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -13,6 +14,9 @@ export class LoginDto {
    */
   @IsNotEmpty()
   @IsString()
+  @Transform(({ value }: { value: string }) =>
+    value.toLocaleLowerCase(),
+  )
   @ValidateIf((o: LoginDto) => o.identifier.includes('@'))
   @IsEmail()
   @ValidateIf((o: LoginDto) => !o.identifier.includes('@'))

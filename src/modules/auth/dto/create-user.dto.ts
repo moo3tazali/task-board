@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -14,6 +15,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(3)
+  @Transform(({ value }: { value: string }) => value.toLowerCase())
   @Matches(/^[a-zA-Z0-9_]+$/, {
     message:
       'username must contain only alphanumeric characters and underscores',
@@ -26,6 +28,7 @@ export class CreateUserDto {
    */
   @IsNotEmpty()
   @IsString()
+  @Transform(({ value }: { value: string }) => value.toLowerCase())
   @IsEmail()
   email: string;
 

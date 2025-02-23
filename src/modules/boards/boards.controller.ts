@@ -21,7 +21,9 @@ import {
   AddMembersDto,
   BoardIdDto,
   CreateBoardDto,
+  DeleteMembersDto,
   MembersDto,
+  UpdateMemberPermissionsrDto,
 } from './dtos';
 import { Board, BoardList, BoardMembers, Member } from './interfaces';
 import { PaginationDto } from 'src/common/dtos';
@@ -44,6 +46,120 @@ export class BoardsController {
       ...createDto,
       ownerId: userId,
     });
+  }
+
+  /**
+   * Add members to my own board or a board with a member who has permission to manage it
+   */
+  @ApiBearerAuth()
+  @Post('members')
+  public async getBoardMembers(
+    @Auth('id') userId: string,
+    @Body() membersDto: AddMembersDto,
+  ): Promise<Member[]> {
+    const { boardId, members } = membersDto;
+
+    const board = await this.getBoardOrFail(boardId, userId);
+
+    this.verifyBoardPermissions(board, userId, ['MANAGE_MEMBERS']);
+
+    const uniqueValues = this.getUniqueMembers(
+      members,
+      board.members,
+    );
+
+    if (!uniqueValues.length) return board.members;
+
+    return this.boardsService.addMembers(boardId, uniqueValues);
+  }
+
+  /**
+   * Update a member permissions for my own board or a board with a member who has permission to manage it
+   */
+  @ApiBearerAuth()
+  @Patch('members')
+  public async updateMemberPermissions(
+    @Auth('id') userId: string,
+    @Body() updateMemberDto: UpdateMemberPermissionsrDto,
+  ): Promise<Member> {
+    const board = await this.getBoardOrFail(
+      updateMemberDto.boardId,
+      userId,
+    );
+
+    this.verifyBoardPermissions(board, userId, ['MANAGE_MEMBERS']);
+
+    const member = board.members.find(
+      (member) => member.user.id === updateMemberDto.userId,
+    );
+
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    if (member.isOwner) {
+      throw new ForbiddenException(
+        'The owner permissions cannot be updated',
+      );
+    }
+
+    if (member.user.id === userId) {
+      throw new ForbiddenException(
+        'Cannot update your own permissions, ask the owner to update',
+      );
+    }
+
+    if (!updateMemberDto.permissions.length) {
+      return member;
+    }
+
+    await this.boardsService.updatePermissions(
+      updateMemberDto.boardId,
+      updateMemberDto,
+    );
+
+    const updatedMember = {
+      ...member,
+      permissions: updateMemberDto.permissions,
+    };
+
+    return updatedMember;
+  }
+
+  /**
+   * Delete members from my own board or a board with a member who has permission to manage it
+   */
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete('members')
+  public async deleteMembers(
+    @Auth('id') userId: string,
+    @Body() deleteMembersDto: DeleteMembersDto,
+  ): Promise<void> {
+    const board = await this.getBoardOrFail(
+      deleteMembersDto.boardId,
+      userId,
+    );
+
+    this.verifyBoardPermissions(board, userId, ['MANAGE_MEMBERS']);
+
+    const uniqueIds = [...new Set(deleteMembersDto.memberIds)];
+
+    const isHasOwnerId = board.members.some(
+      (member) =>
+        uniqueIds.includes(member.user.id) && member.isOwner,
+    );
+
+    if (isHasOwnerId) {
+      throw new ForbiddenException(
+        'Cannot delete owner membership from the board',
+      );
+    }
+
+    await this.boardsService.deleteMembers(
+      deleteMembersDto.boardId,
+      uniqueIds,
+    );
   }
 
   /**
@@ -116,31 +232,6 @@ export class BoardsController {
     this.verifyBoardPermissions(board, userId, ['DELETE']);
 
     await this.boardsService.delete(boardId);
-  }
-
-  /**
-   * Add members to my own board or a board you have permission to manage
-   */
-  @ApiBearerAuth()
-  @Post('members')
-  public async getBoardMembers(
-    @Auth('id') userId: string,
-    @Body() membersDto: AddMembersDto,
-  ): Promise<Member[]> {
-    const { boardId, members } = membersDto;
-
-    const board = await this.getBoardOrFail(boardId, userId);
-
-    this.verifyBoardPermissions(board, userId, ['MANAGE_MEMBERS']);
-
-    const uniqueValues = this.getUniqueMembers(
-      members,
-      board.members,
-    );
-
-    if (!uniqueValues.length) return board.members;
-
-    return this.boardsService.addMembers(boardId, uniqueValues);
   }
 
   //
