@@ -7,6 +7,7 @@ import {
   AuthModule,
   UsersModule,
   BoardsModule,
+  BoardMembersModule,
   ListsModule,
 } from './modules';
 
@@ -32,6 +33,7 @@ import {
     AuthModule,
     UsersModule,
     BoardsModule,
+    BoardMembersModule,
     ListsModule,
   ],
 })

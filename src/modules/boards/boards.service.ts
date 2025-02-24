@@ -1,36 +1,29 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { Board, BoardPermission } from '@prisma/client';
+import { Board, BoardPermission, BoardRole } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { BoardMembers, Member } from './interfaces';
+import { Member } from '../board-members/interfaces';
+import { BoardMembers } from './interfaces';
+import { rolePermissions } from '../auth/constants';
+import { PaginationDto } from 'src/common/dtos';
 
 @Injectable()
 export class BoardsService {
   constructor(private readonly db: PrismaService) {}
 
-  public async create(dto: {
-    title: string;
-    description: string;
-    ownerId: string;
-  }): Promise<Board> {
+  public async create(
+    ownerId: string,
+    dto: {
+      title: string;
+      description: string;
+    },
+  ): Promise<Board> {
     try {
       const createdBoard = await this.db.board.create({
         data: {
+          ownerId,
           ...dto,
-          members: {
-            create: {
-              userId: dto.ownerId,
-              permissions: [
-                'VIEW',
-                'EDIT',
-                'DELETE',
-                'COMMENT',
-                'MANAGE_MEMBERS',
-              ],
-              isOwner: true,
-            },
-          },
         },
       });
 
@@ -49,33 +42,28 @@ export class BoardsService {
 
   public async getList(
     userId: string,
-    pagination: {
-      skip: number;
-      limit: number;
-      order: 'asc' | 'desc';
-    },
+    pagination: PaginationDto,
   ): Promise<[Board[], number]> {
-    return Promise.all([
-      this.db.board.findMany({
-        where: {
+    const where = {
+      OR: [
+        { ownerId: userId },
+        {
           members: {
-            some: {
-              userId,
-            },
+            some: { memberId: userId },
           },
         },
+      ],
+    };
+
+    return Promise.all([
+      this.db.board.findMany({
+        where,
         orderBy: { createdAt: pagination.order },
         skip: pagination.skip,
         take: pagination.limit,
       }),
       this.db.board.count({
-        where: {
-          members: {
-            some: {
-              userId,
-            },
-          },
-        },
+        where,
       }),
     ]);
   }
@@ -84,14 +72,13 @@ export class BoardsService {
     boardId: string,
     userId: string,
   ): Promise<BoardMembers | null> {
-    return await this.db.board.findUnique({
+    return await this.db.board.findFirst({
       where: {
         id: boardId,
-        members: {
-          some: {
-            userId,
-          },
-        },
+        OR: [
+          { ownerId: userId },
+          { members: { some: { memberId: userId } } },
+        ],
       },
       include: {
         members: this.membersSelect,
@@ -118,68 +105,62 @@ export class BoardsService {
 
   public async addMembers(
     boardId: string,
-    dto: { userId: string; permissions?: BoardPermission[] }[],
-  ): Promise<Member[]> {
-    const updatedBoard = await this.db.board.update({
-      where: { id: boardId },
-      data: {
-        members: {
-          createMany: {
-            data: dto,
-          },
-        },
-      },
-      include: { members: this.membersSelect },
+    memberIds: string[],
+  ): Promise<void> {
+    await this.db.boardMember.createMany({
+      data: memberIds.map((memberId) => ({ boardId, memberId })),
+      skipDuplicates: true,
     });
-
-    return updatedBoard.members;
   }
 
-  public async updatePermissions(
+  public async updateMemberRoles(
     boardId: string,
-    dto: { userId: string; permissions: BoardPermission[] },
-  ): Promise<Member[]> {
-    const updatedBoard = await this.db.board.update({
-      where: { id: boardId },
+    memberId: string,
+    rolesDto: BoardRole[],
+  ): Promise<Member> {
+    const newPermissions = this.getPermissionsFromRoles(rolesDto);
+
+    const member = await this.db.boardMember.update({
+      where: { boardId_memberId: { boardId, memberId } },
       data: {
-        members: {
-          update: {
-            where: {
-              boardId_userId: {
-                boardId,
-                userId: dto.userId,
-              },
-            },
-            data: {
-              permissions: dto.permissions,
-            },
-          },
-        },
+        roles: rolesDto,
+        permissions: newPermissions,
       },
-      include: { members: this.membersSelect },
+      include: this.membersSelect.select,
     });
 
-    return updatedBoard.members;
+    return member;
+  }
+
+  public async updateMemberPermissions(
+    boardId: string,
+    memberId: string,
+    permissionsDto: BoardPermission[],
+  ): Promise<Member> {
+    const member = await this.db.boardMember.update({
+      where: { boardId_memberId: { boardId, memberId } },
+      data: {
+        permissions: permissionsDto,
+      },
+      include: this.membersSelect.select,
+    });
+
+    return member;
   }
 
   public async deleteMembers(
     boardId: string,
-    userIds: string[],
-  ): Promise<Board> {
-    return await this.db.board.update({
-      where: { id: boardId },
-      data: {
-        members: {
-          deleteMany: {
-            userId: { in: userIds },
-          },
-        },
+    memberIds: string[],
+  ): Promise<void> {
+    await this.db.boardMember.deleteMany({
+      where: {
+        boardId,
+        memberId: { in: memberIds },
       },
-      include: { members: true },
     });
   }
 
-  membersSelect = {
+  private membersSelect = {
     select: {
       boardId: true,
       user: {
@@ -190,10 +171,17 @@ export class BoardsService {
           avatarPath: true,
         },
       },
-      permissions: true,
-      isOwner: true,
+      roles: true,
       createdAt: true,
       updatedAt: true,
     },
   };
+
+  private getPermissionsFromRoles(
+    roles: BoardRole[],
+  ): BoardPermission[] {
+    return [
+      ...new Set(roles.flatMap((role) => rolePermissions[role])),
+    ];
+  }
 }

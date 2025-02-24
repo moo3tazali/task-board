@@ -13,45 +13,58 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  ADMIN
-  USER
+enum AppRole {
+  ADMIN // App admin, can manage all boards, users, and permissions
+  USER // Regular user, can create boards, lists, tasks, comments and attachments
+}
+
+enum BoardRole {
+  OWNER // Board owner, has all permissions
+  MANAGER // Can manage board members, lists, tasks and labels
+  MEMBER // Can view, create, and update tasks, comments and attachments
+  VIEWER // Can view the board and its contents
 }
 
 enum BoardPermission {
   BOARD_UPDATE
   BOARD_DELETE
+  BOARD_ROLE_UPDATE
 
   BOARD_MEMBERS_CREATE
   BOARD_MEMBERS_UPDATE
   BOARD_MEMBERS_DELETE
+  BOARD_MEMBERS_ROLE_UPDATE
 
   LIST_CREATE
   LIST_UPDATE
   LIST_DELETE
+  LISTS_ORDER_UPDATE
 
   TASK_CREATE
   TASK_UPDATE
   TASK_DELETE
-  TASK_ASSIGN
-  TASK_UNASSIGN
+  TASKS_ORDER_UPDATE
   TASK_LABEL_CREATE
   TASK_LABEL_UPDATE
   TASK_LABEL_DELETE
+  TASK_ASSIGN
+  TASK_UNASSIGN
   TASK_DUE_DATE_UPDATE
+  TASK_MOVE
   TASK_STATUS_UPDATE
   TASK_COMMENT_CREATE
   TASK_COMMENT_UPDATE
   TASK_COMMENT_DELETE
   TASK_ATTACHMENT_CREATE
   TASK_ATTACHMENT_DELETE
+  TASK_ATTACHMENT_VIEW
 }
 
 enum TaskStatus {
-  TODO
+  NOT_STARTED
   IN_PROGRESS
-  NEED_REVIEW
-  DONE
+  PENDING_REVIEW
+  COMPLETED
   OVERDUE
 }
 
@@ -66,12 +79,12 @@ enum ActivityAction {
 }
 
 model User {
-  id           String     @id @default(uuid())
-  username     String     @unique
-  email        String     @unique
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
   passwordHash String
   avatarPath   String?
-  roles        UserRole[] @default([USER])
+  roles        AppRole[] @default([USER])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -86,14 +99,17 @@ model User {
 }
 
 model Board {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
   description String
   ownerId     String
-  owner       User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isArchived  Boolean @default(false)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
 
   lists      List[]
   members    BoardMember[]
@@ -104,17 +120,17 @@ model Board {
 }
 
 model BoardMember {
-  userId      String
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberId    String
+  user        User              @relation(fields: [memberId], references: [id], onDelete: Cascade)
   boardId     String
   board       Board             @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  permissions BoardPermission[] @default([])
-  isOwner     Boolean           @default(false)
+  roles       BoardRole[]       @default([MEMBER])
+  permissions BoardPermission[] @default([TASK_MOVE, TASK_STATUS_UPDATE, TASK_COMMENT_CREATE, TASK_COMMENT_UPDATE, TASK_COMMENT_DELETE, TASK_ATTACHMENT_CREATE, TASK_ATTACHMENT_DELETE, TASK_ATTACHMENT_VIEW])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@id([boardId, userId])
+  @@id([boardId, memberId])
   @@map("board_members")
 }
 

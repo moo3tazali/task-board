@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { BoardPermission } from '@prisma/client';
 import {
+  ArrayNotEmpty,
   IsArray,
   IsEnum,
   IsNotEmpty,
@@ -8,7 +9,9 @@ import {
   IsUUID,
 } from 'class-validator';
 
-export class UpdateMemberPermissionsrDto {
+import { BoardIdDto } from 'src/modules/boards/dtos';
+
+export class UpdateMemberPermissionsDto extends BoardIdDto {
   /**
    * boardId should be a valid UUID
    * @example '6006b460-46b6-451b-b07d-59d15a38657f'
@@ -16,16 +19,7 @@ export class UpdateMemberPermissionsrDto {
   @IsNotEmpty()
   @IsString()
   @IsUUID()
-  boardId: string;
-
-  /**
-   * userId should be a valid UUID
-   * @example '6006b460-46b6-451b-b07d-59d15a38657f'
-   */
-  @IsNotEmpty()
-  @IsString()
-  @IsUUID()
-  userId: string;
+  memberId: string;
 
   /**
    * permissions should be an array of BoardPermission enums
@@ -33,10 +27,14 @@ export class UpdateMemberPermissionsrDto {
   @ApiProperty({
     enum: BoardPermission,
     isArray: true,
-    examples: ['MANAGE_MEMBERS', 'EDIT'],
+    example: [
+      BoardPermission.TASK_CREATE,
+      BoardPermission.LIST_CREATE,
+    ],
   })
   @IsNotEmpty()
   @IsArray()
+  @ArrayNotEmpty()
   @IsEnum(BoardPermission, { each: true })
   permissions: BoardPermission[];
 }

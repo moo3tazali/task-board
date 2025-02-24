@@ -25,46 +25,68 @@ export class PermissionsGuard implements CanActivate {
       BoardPermission[]
     >(PERMISSIONS_KEY, [context.getHandler(), context.getClass()]);
 
-    if (!requiredPermissions || !requiredPermissions.length)
-      return true;
+    if (!requiredPermissions) return true;
 
     const request = context.switchToHttp().getRequest<Req>();
     const params = request.params;
-    const body = request.body as { boardId: string };
+    const body = request.body as { boardId?: string };
+    const query = request.query;
 
     const userId = request.user?.id;
 
-    const boardId = params?.boardId || body?.boardId || '';
+    const boardId =
+      params?.boardId ||
+      body?.boardId ||
+      (query?.boardId as string) ||
+      '';
 
-    if (!userId) throw new UnauthorizedException();
+    if (!userId)
+      throw new UnauthorizedException(
+        'Invalid token or user not found. Please log in again.',
+      );
 
     if (!boardId) throw new BadRequestException('boardId is missing');
 
-    const boardMember = await this.db.boardMember.findUnique({
-      where: { boardId_userId: { boardId, userId } },
-      select: { permissions: true },
-    });
+    const board = await this.getBoard(boardId, userId);
 
-    if (!boardMember) {
-      const boardExists = await this.db.board.findUnique({
-        where: { id: boardId },
-        select: { id: true },
-      });
+    if (!board) throw new NotFoundException('Board not found');
 
-      if (!boardExists)
-        throw new NotFoundException('Board not found');
+    if (board.ownerId === userId) return true;
 
-      throw new ForbiddenException('Access Denied');
-    }
+    const boardMember = board.members[0];
 
-    // Check if the user has the required permissions to access the board.
+    if (!boardMember)
+      throw new ForbiddenException('Unauthorized access');
+
+    if (!requiredPermissions.length) return true;
+
+    // Check if the user has the required board permissions.
     const hasPermission = requiredPermissions.every((perm) =>
       boardMember?.permissions?.includes(perm),
     );
 
     if (!hasPermission)
-      throw new ForbiddenException('Insufficient Permissions');
+      throw new ForbiddenException(
+        'Unauthorized action, you do not have the required permissions',
+      );
 
     return true;
+  }
+
+  private async getBoard(boardId: string, userId: string) {
+    return await this.db.board.findUnique({
+      where: { id: boardId },
+      select: {
+        ownerId: true,
+        members: {
+          where: { memberId: userId },
+          select: {
+            memberId: true,
+            roles: true,
+            permissions: true,
+          },
+        },
+      },
+    });
   }
 }

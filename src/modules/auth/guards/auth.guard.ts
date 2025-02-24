@@ -35,7 +35,9 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Req>();
     const token = this.extractTokenFromHeader(request);
     if (!token) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException(
+        'No token provided. Please provide a token in the Authorization header using the Bearer scheme. e.g. "Bearer <token>"',
+      );
     }
 
     try {
@@ -49,12 +51,16 @@ export class AuthGuard implements CanActivate {
       const user = await this.userService.findById(payload.sub);
 
       if (!user) {
-        throw new UnauthorizedException();
+        throw new UnauthorizedException(
+          'Invalid token or user not found. Please log in again.',
+        );
       }
 
       request.user = user;
     } catch {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException(
+        'Invalid token or user not found. Please log in again.',
+      );
     }
     return true;
   }
