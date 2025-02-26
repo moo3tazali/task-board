@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -6,7 +10,6 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Payload } from './interfaces';
 import { UserService } from '../user/user.service';
 import { PasswordService } from '../user/password/password.service';
-import { UserExistException } from './exceptions';
 import { CreateUserDto, LoginDto } from './dto';
 
 @Injectable()
@@ -25,13 +28,18 @@ export class AuthService {
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new UserExistException();
+          const causes = (error.meta?.target as string[]) || [];
+          const fields = Object.keys(userDto);
+          const cause =
+            causes.find((cause) => fields.includes(cause)) || '';
+
+          throw new ConflictException('User already exist', {
+            cause,
+          });
         }
       }
 
-      throw new Error(
-        'An unexpected error occurred while registering user',
-      );
+      throw error;
     }
   }
 
