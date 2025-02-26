@@ -1,11 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { User as PrismaUser, BoardRole } from '@prisma/client';
+import {
+  User as PrismaUser,
+  BoardRole,
+  BoardPermission,
+} from '@prisma/client';
 import { Pagination } from 'src/common/interfaces';
 
-type User = Pick<
+type UserType = Pick<
   PrismaUser,
   'id' | 'username' | 'email' | 'avatarPath'
 >;
+
+class User implements UserType {
+  id: string;
+  username: string;
+  email: string;
+  avatarPath: string | null;
+}
 
 export class Member {
   boardId: string;
@@ -18,6 +29,18 @@ export class Member {
   roles: BoardRole[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export class MemberWithPermissions extends Member {
+  @ApiProperty({
+    enum: BoardPermission,
+    isArray: true,
+    example: [
+      BoardPermission.TASK_CREATE,
+      BoardPermission.LIST_CREATE,
+    ],
+  })
+  permissions: BoardPermission[];
 }
 
 export class MemberList implements Pagination<Member> {

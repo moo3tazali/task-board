@@ -31,7 +31,9 @@ export class BoardsService {
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException('title already exists');
+          throw new ConflictException('title already exists', {
+            cause: 'title',
+          });
         }
         throw error;
       }
@@ -93,10 +95,23 @@ export class BoardsService {
       description?: string;
     },
   ): Promise<Board> {
-    return await this.db.board.update({
-      where: { id: boardId },
-      data: updatedDto,
-    });
+    try {
+      return await this.db.board.update({
+        where: { id: boardId },
+        data: updatedDto,
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException('title already exists', {
+            cause: 'title',
+          });
+        }
+        throw error;
+      }
+
+      throw error;
+    }
   }
 
   public async delete(boardId: string): Promise<void> {

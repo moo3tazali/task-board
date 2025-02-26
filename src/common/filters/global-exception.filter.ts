@@ -27,7 +27,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const status = exception?.getStatus();
     const exceptionResponse = exception?.getResponse();
-    const cause = (exception.cause as string) || 'root';
+    const cause = (exception.cause as string) || '';
 
     let message: string = '';
     const validationsErrors: { [key: string]: string[] } = {};
@@ -42,7 +42,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
       if (Array.isArray(messages)) {
         messages.forEach((message: string) => {
-          const field = message.split(' ').shift() ?? cause;
+          const field = message.split(' ').shift() || 'root';
 
           if (!validationsErrors[field]) {
             validationsErrors[field] = [];
@@ -54,6 +54,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       } else if (typeof messages === 'string') {
         // Handle the case where the response is a simple string message
         message = messages;
+        if (cause) {
+          validationsErrors[cause] = [message];
+        }
       }
     }
 

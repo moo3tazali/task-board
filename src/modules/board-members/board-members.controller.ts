@@ -2,10 +2,10 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -18,12 +18,17 @@ import { BoardMembersService } from './board-members.service';
 import {
   AddMembersDto,
   DeleteMembersDto,
+  MemberIdDto,
   UpdateMemberPermissionsDto,
   UpdateMemberRolesDto,
 } from './dtos';
 import { PaginationDto } from 'src/common/dtos';
 import { BoardIdDto } from '../boards/dtos';
-import { Member, MemberList } from './interfaces';
+import {
+  Member,
+  MemberList,
+  MemberWithPermissions,
+} from './interfaces';
 
 @Controller('boardMembers')
 export class BoardMembersController {
@@ -67,6 +72,26 @@ export class BoardMembersController {
         skip: pagination.skip,
       },
     };
+  }
+
+  /**
+   * Get one member of my own board or the board i'm one of its members
+   */
+  @ApiBearerAuth()
+  @Permissions()
+  @Get('one')
+  public async getMember(
+    @Query() { boardId }: BoardIdDto,
+    @Query() { memberId }: MemberIdDto,
+  ): Promise<MemberWithPermissions> {
+    const member = await this.membersService.getOne(
+      boardId,
+      memberId,
+    );
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+    return member;
   }
 
   /**
@@ -115,18 +140,6 @@ export class BoardMembersController {
     return this.membersService.deleteMembers(
       boardIdParam.boardId,
       deleteMembersDto.memberIds,
-    );
-  }
-
-  // private methods
-  private checkUpateOwnRolesOrPermissions(
-    memberId: string,
-    userId: string,
-  ) {
-    if (memberId !== userId) return;
-
-    throw new ForbiddenException(
-      "You can't perform this action on yourself, ask the board owner to do so",
     );
   }
 }
