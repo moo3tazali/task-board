@@ -26,7 +26,7 @@ export class PrismaExceptionsService {
       if (error instanceof PrismaClientKnownRequestError) {
         const code = error.code;
         const causes = (error.meta?.target as string[]) || [];
-        const cause = options?.field || causes[0];
+        const cause = options?.field || causes.reverse().join('_');
         const errorMsg = this.getErrorMessage(error.code, cause);
         const message = options?.message || errorMsg;
 

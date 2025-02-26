@@ -80,9 +80,9 @@ export class BoardsService {
   public async getOne(
     boardId: string,
     userId: string,
-  ): Promise<BoardMembers | null> {
+  ): Promise<BoardMembers> {
     return this.prisma.handle(() =>
-      this.db.board.findFirst({
+      this.db.board.findFirstOrThrow({
         where: {
           id: boardId,
           OR: [

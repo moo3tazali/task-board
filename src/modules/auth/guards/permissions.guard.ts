@@ -6,12 +6,15 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  ValidationError,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { BoardPermission } from '@prisma/client';
+import { validateSync } from 'class-validator';
 
 import { PERMISSIONS_KEY } from '../decorators';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
+import { BoardIdDto } from 'src/modules/boards/dtos';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -87,6 +90,15 @@ export class PermissionsGuard implements CanActivate {
 
     if (!boardId) throw new BadRequestException('boardId is missing');
 
+    const dto = new BoardIdDto();
+    dto.boardId = boardId;
+
+    const errors = validateSync(dto);
+
+    if (errors.length > 0) {
+      this.throwValidationException(errors);
+    }
+
     return boardId;
   }
 
@@ -147,5 +159,16 @@ export class PermissionsGuard implements CanActivate {
         "You can't perform this action on yourself, ask the board owner to do so",
       );
     }
+  }
+
+  // reformat the validation errors into a NestJS-friendly format and throw it.
+  private throwValidationException(errors: ValidationError[]) {
+    throw new BadRequestException({
+      statusCode: 400,
+      message: errors.flatMap((error) =>
+        Object.values(error.constraints || {}),
+      ),
+      error: 'Bad Request',
+    });
   }
 }

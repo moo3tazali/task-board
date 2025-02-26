@@ -4,7 +4,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PaginationDto {
   @ApiPropertyOptional({
-    description: 'records to skip',
+    description: 'records to skip, min (0)',
     type: 'integer',
   })
   @IsOptional()
@@ -14,7 +14,7 @@ export class PaginationDto {
   skip: number = 0;
 
   @ApiPropertyOptional({
-    description: 'number of records to return',
+    description: 'number of records to return, min (1), max (100)',
     type: 'integer',
   })
   @IsOptional()

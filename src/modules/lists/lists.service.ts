@@ -16,10 +16,14 @@ export class ListsService {
     boardId: string;
     title: string;
   }): Promise<List> {
-    return this.prisma.handle<List>(() =>
-      this.db.list.create({
-        data: createDto,
-      }),
+    return this.prisma.handle<List>(
+      () =>
+        this.db.list.create({
+          data: createDto,
+        }),
+      {
+        field: 'title',
+      },
     );
   }
 
@@ -42,29 +46,41 @@ export class ListsService {
     );
   }
 
-  public async getOne(listId: string): Promise<List | null> {
+  public async getOne(
+    listId: string,
+    boardId: string,
+  ): Promise<List> {
     return this.prisma.handle(() =>
-      this.db.list.findUnique({
-        where: { id: listId },
+      this.db.list.findUniqueOrThrow({
+        where: { id: listId, boardId },
       }),
     );
   }
 
-  public async update(
-    listId: string,
-    updatedDto: { title: string },
-  ): Promise<List> {
+  public async update(updatedDto: {
+    title: string;
+    listId: string;
+    boardId: string;
+  }): Promise<List> {
     return this.prisma.handle<List>(() =>
       this.db.list.update({
-        where: { id: listId },
-        data: updatedDto,
+        where: {
+          id: updatedDto.listId,
+          boardId: updatedDto.boardId,
+        },
+        data: {
+          title: updatedDto.title,
+        },
       }),
     );
   }
 
-  public async delete(listId: string): Promise<void> {
+  public async delete(
+    listId: string,
+    boardId: string,
+  ): Promise<void> {
     await this.prisma.handle(() =>
-      this.db.list.delete({ where: { id: listId } }),
+      this.db.list.delete({ where: { id: listId, boardId } }),
     );
   }
 }

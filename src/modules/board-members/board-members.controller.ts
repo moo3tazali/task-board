@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -50,6 +49,19 @@ export class BoardMembersController {
   }
 
   /**
+   * Get one member of my own board or the board i'm one of its members
+   */
+  @ApiBearerAuth()
+  @Permissions()
+  @Get()
+  public async getMember(
+    @Query() { boardId }: BoardIdDto,
+    @Query() { memberId }: MemberIdDto,
+  ): Promise<MemberWithPermissions> {
+    return this.membersService.getOne(boardId, memberId);
+  }
+
+  /**
    * Get a list of members of my own board or the board i'm one of its members
    */
   @ApiBearerAuth()
@@ -72,26 +84,6 @@ export class BoardMembersController {
         skip: pagination.skip,
       },
     };
-  }
-
-  /**
-   * Get one member of my own board or the board i'm one of its members
-   */
-  @ApiBearerAuth()
-  @Permissions()
-  @Get('one')
-  public async getMember(
-    @Query() { boardId }: BoardIdDto,
-    @Query() { memberId }: MemberIdDto,
-  ): Promise<MemberWithPermissions> {
-    const member = await this.membersService.getOne(
-      boardId,
-      memberId,
-    );
-    if (!member) {
-      throw new NotFoundException('Member not found');
-    }
-    return member;
   }
 
   /**

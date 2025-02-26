@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class CreateBoardDto {
@@ -8,6 +9,7 @@ export class CreateBoardDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(3)
+  @Transform(({ value }: { value: string }) => value.toLowerCase())
   title: string;
 
   /**

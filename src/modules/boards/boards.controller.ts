@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -68,8 +67,8 @@ export class BoardsController {
   public async getBoard(
     @Auth('id') userId: string,
     @Param() { boardId }: BoardIdDto,
-  ): Promise<Board> {
-    return this.getBoardOrFail(boardId, userId);
+  ): Promise<BoardMembers> {
+    return this.boardsService.getOne(boardId, userId);
   }
 
   /**
@@ -96,21 +95,5 @@ export class BoardsController {
     @Param() { boardId }: BoardIdDto,
   ): Promise<void> {
     await this.boardsService.delete(boardId);
-  }
-
-  //
-  //
-  // Private methods
-  private async getBoardOrFail(
-    boardId: string,
-    userId: string,
-  ): Promise<BoardMembers> {
-    const board = await this.boardsService.getOne(boardId, userId);
-
-    if (!board) {
-      throw new NotFoundException('Board not found');
-    }
-
-    return board;
   }
 }

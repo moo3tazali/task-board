@@ -72,9 +72,9 @@ export class BoardMembersService {
   public async getOne(
     boardId: string,
     memberId: string,
-  ): Promise<MemberWithPermissions | null> {
+  ): Promise<MemberWithPermissions> {
     return this.prisma.handle(() =>
-      this.db.boardMember.findUnique({
+      this.db.boardMember.findUniqueOrThrow({
         where: { boardId_memberId: { boardId, memberId } },
         select: {
           ...this.membersSelect.select,
