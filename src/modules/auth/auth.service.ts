@@ -1,11 +1,7 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { PrismaExceptionsService } from '../prisma/prisma-exceptions.service';
 
 import { Payload } from './interfaces';
 import { UserService } from '../user/user.service';
@@ -18,29 +14,15 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly passwordService: PasswordService,
+    private readonly prisma: PrismaExceptionsService,
   ) {}
 
   public async register(userDto: CreateUserDto): Promise<string> {
-    try {
-      const createdUser = await this.userService.createUser(userDto);
+    const createdUser = await this.prisma.handle(() =>
+      this.userService.createUser(userDto),
+    );
 
-      return this.generateToken(createdUser);
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          const causes = (error.meta?.target as string[]) || [];
-          const fields = Object.keys(userDto);
-          const cause =
-            causes.find((cause) => fields.includes(cause)) || '';
-
-          throw new ConflictException('User already exist', {
-            cause,
-          });
-        }
-      }
-
-      throw error;
-    }
+    return this.generateToken(createdUser);
   }
 
   public async login(loginDto: LoginDto): Promise<string> {
@@ -49,13 +31,17 @@ export class AuthService {
     const isEmail = loginDto.identifier.includes('@');
 
     if (isEmail) {
-      user = await this.userService.findOne({
-        email: loginDto.identifier,
-      });
+      user = await this.prisma.handle(() =>
+        this.userService.findOne({
+          email: loginDto.identifier,
+        }),
+      );
     } else {
-      user = await this.userService.findOne({
-        username: loginDto.identifier,
-      });
+      user = await this.prisma.handle(() =>
+        this.userService.findOne({
+          username: loginDto.identifier,
+        }),
+      );
     }
 
     if (!user) {

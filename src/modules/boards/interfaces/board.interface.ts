@@ -7,8 +7,10 @@ export class Board implements PrismaBoard {
   title: string;
   description: string;
   ownerId: string;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
+  archivedAt: Date | null;
 }
 
 export class BoardList implements Pagination<Board> {
@@ -25,7 +27,9 @@ export class BoardMembers implements BoardMembersType {
   title: string;
   description: string;
   ownerId: string;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
+  archivedAt: Date | null;
   members: Member[];
 }

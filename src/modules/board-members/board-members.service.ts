@@ -1,20 +1,18 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { BoardPermission, BoardRole } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
-
+import { PrismaExceptionsService } from '../prisma/prisma-exceptions.service';
 import { Member, MemberWithPermissions } from './interfaces';
 import { rolePermissions } from '../auth/constants';
 import { PaginationDto } from 'src/common/dtos';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class BoardMembersService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly prisma: PrismaExceptionsService,
+  ) {}
 
   private membersSelect = {
     select: {
@@ -37,56 +35,53 @@ export class BoardMembersService {
     boardId: string,
     memberIds: string[],
   ): Promise<void> {
-    try {
-      await this.db.boardMember.createMany({
-        data: memberIds.map((memberId) => ({ boardId, memberId })),
-        skipDuplicates: true,
-      });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2003') {
-          throw new BadRequestException(
-            'one or more of the memberIds are invalid, your memberIds array need to contain a real user ids',
-            {
-              cause: 'memberIds',
-            },
-          );
-        }
-        throw error;
-      }
-      throw error;
-    }
+    await this.prisma.handle(
+      () =>
+        this.db.boardMember.createMany({
+          data: memberIds.map((memberId) => ({ boardId, memberId })),
+          skipDuplicates: true,
+        }),
+      {
+        field: 'memberIds',
+        message:
+          'one or more of the memberIds are invalid, your memberIds array need to contain a real user ids',
+      },
+    );
   }
 
   public async membersList(
     boardId: string,
     pagination: PaginationDto,
   ): Promise<[Member[], number]> {
-    return Promise.all([
-      this.db.boardMember.findMany({
-        where: { boardId },
-        select: this.membersSelect.select,
-        orderBy: { createdAt: pagination.order },
-        skip: pagination.skip,
-        take: pagination.limit,
-      }),
-      this.db.boardMember.count({
-        where: { boardId },
-      }),
-    ]);
+    return this.prisma.handle(() =>
+      Promise.all([
+        this.db.boardMember.findMany({
+          where: { boardId },
+          select: this.membersSelect.select,
+          orderBy: { createdAt: pagination.order },
+          skip: pagination.skip,
+          take: pagination.limit,
+        }),
+        this.db.boardMember.count({
+          where: { boardId },
+        }),
+      ]),
+    );
   }
 
   public async getOne(
     boardId: string,
     memberId: string,
   ): Promise<MemberWithPermissions | null> {
-    return await this.db.boardMember.findUnique({
-      where: { boardId_memberId: { boardId, memberId } },
-      select: {
-        ...this.membersSelect.select,
-        permissions: true,
-      },
-    });
+    return this.prisma.handle(() =>
+      this.db.boardMember.findUnique({
+        where: { boardId_memberId: { boardId, memberId } },
+        select: {
+          ...this.membersSelect.select,
+          permissions: true,
+        },
+      }),
+    );
   }
 
   public async updateMemberRoles(
@@ -96,29 +91,21 @@ export class BoardMembersService {
   ): Promise<Member> {
     const newPermissions = this.getPermissionsFromRoles(roles);
 
-    try {
-      const member = await this.db.boardMember.update({
-        where: { boardId_memberId: { boardId, memberId } },
-        data: {
-          roles,
-          permissions: newPermissions,
-        },
-        select: this.membersSelect.select,
-      });
-
-      return member;
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException(
-            'memberId not found in the board',
-            { cause: 'memberId' },
-          );
-        }
-        throw error;
-      }
-      throw error;
-    }
+    return this.prisma.handle(
+      () =>
+        this.db.boardMember.update({
+          where: { boardId_memberId: { boardId, memberId } },
+          data: {
+            roles,
+            permissions: newPermissions,
+          },
+          select: this.membersSelect.select,
+        }),
+      {
+        field: 'memberId',
+        message: 'member not found in the board',
+      },
+    );
   }
 
   public async updateMemberPermissions(
@@ -126,40 +113,34 @@ export class BoardMembersService {
     memberId: string,
     permissions: BoardPermission[],
   ): Promise<Member> {
-    try {
-      const member = await this.db.boardMember.update({
-        where: { boardId_memberId: { boardId, memberId } },
-        data: {
-          permissions,
-        },
-        select: this.membersSelect.select,
-      });
-
-      return member;
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException(
-            'memberId not found in the board',
-            { cause: 'memberId' },
-          );
-        }
-        throw error;
-      }
-      throw error;
-    }
+    return this.prisma.handle(
+      () =>
+        this.db.boardMember.update({
+          where: { boardId_memberId: { boardId, memberId } },
+          data: {
+            permissions,
+          },
+          select: this.membersSelect.select,
+        }),
+      {
+        field: 'memberId',
+        message: 'member not found in the board',
+      },
+    );
   }
 
   public async deleteMembers(
     boardId: string,
     memberIds: string[],
   ): Promise<void> {
-    await this.db.boardMember.deleteMany({
-      where: {
-        boardId,
-        memberId: { in: memberIds },
-      },
-    });
+    await this.prisma.handle(() =>
+      this.db.boardMember.deleteMany({
+        where: {
+          boardId,
+          memberId: { in: memberIds },
+        },
+      }),
+    );
   }
 
   private getPermissionsFromRoles(

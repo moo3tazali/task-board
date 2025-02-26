@@ -145,6 +145,7 @@ model List {
 
   tasks Task[]
 
+  @@unique([boardId, title])
   @@map("lists")
 }
 
