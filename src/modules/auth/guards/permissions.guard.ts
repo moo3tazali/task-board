@@ -6,7 +6,6 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
-  ValidationError,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { BoardPermission } from '@prisma/client';
@@ -70,22 +69,16 @@ export class PermissionsGuard implements CanActivate {
 
   // try to get the boardId from the request or fail.
   private getRequestBoardIdOrFail(request: Req): string {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const { params, body, query } = request;
+
     const boardId =
-      request.params?.boardId ??
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      request.body?.boardId ??
-      (request.query?.boardId as string);
+      params?.boardId ?? body?.boardId ?? (query?.boardId as string);
 
     if (!boardId) throw new BadRequestException('boardId is missing');
 
-    const dto = new BoardIdDto();
-    dto.boardId = boardId;
-
-    const errors = validateSync(dto);
-
-    if (errors.length > 0) {
-      this.throwValidationException(errors);
-    }
+    this.validateBoardId(boardId);
 
     return boardId;
   }
@@ -105,7 +98,10 @@ export class PermissionsGuard implements CanActivate {
       },
     });
 
-    if (!boardMember) throw new NotFoundException('Board not found');
+    if (!boardMember)
+      throw new NotFoundException(
+        `No board member found for boardId: ${boardId}`,
+      );
 
     return boardMember;
   }
@@ -126,14 +122,21 @@ export class PermissionsGuard implements CanActivate {
     }
   }
 
-  // reformat the validation errors into a NestJS-friendly format and throw it.
-  private throwValidationException(errors: ValidationError[]) {
-    throw new BadRequestException({
-      statusCode: 400,
-      message: errors.flatMap((error) =>
-        Object.values(error.constraints || {}),
-      ),
-      error: 'Bad Request',
-    });
+  // validate boardId.
+  private validateBoardId(boardId: string) {
+    const dto = new BoardIdDto();
+    dto.boardId = boardId;
+
+    const errors = validateSync(dto);
+
+    if (errors.length > 0) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: errors.flatMap((error) =>
+          Object.values(error.constraints || {}),
+        ),
+        error: 'Bad Request',
+      });
+    }
   }
 }
