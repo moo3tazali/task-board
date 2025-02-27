@@ -9,6 +9,7 @@ import {
   BoardsModule,
   BoardMembersModule,
   ListsModule,
+  TasksModule,
 } from './modules';
 
 /**
@@ -35,6 +36,7 @@ import {
     BoardsModule,
     BoardMembersModule,
     ListsModule,
+    TasksModule,
   ],
 })
 export class AppModule {}

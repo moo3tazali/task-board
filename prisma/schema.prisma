@@ -92,7 +92,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   boards        BoardMember[]
-  tasks         TaskAssignee[]
+  assignedTasks TaskAssignee[]
   activities    ActivityLog[]
   notifications Notification[]
 
@@ -149,12 +149,13 @@ model List {
 
 model Task {
   id          String     @id @default(uuid())
+  listId      String
   title       String
   description String?
-  listId      String
-  list        List       @relation(fields: [listId], references: [id], onDelete: Cascade)
   status      TaskStatus
   dueDate     DateTime?
+
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -165,6 +166,7 @@ model Task {
   activities  ActivityLog[]
   attachments Attachment[]
 
+  @@unique([listId, title])
   @@index([title])
   @@map("tasks")
 }

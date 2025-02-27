@@ -46,13 +46,10 @@ export class ListsService {
     );
   }
 
-  public async getOne(
-    listId: string,
-    boardId: string,
-  ): Promise<List> {
+  public async getOne(listId: string): Promise<List> {
     return this.prisma.handle(() =>
       this.db.list.findUniqueOrThrow({
-        where: { id: listId, boardId },
+        where: { id: listId },
       }),
     );
   }
@@ -75,12 +72,9 @@ export class ListsService {
     );
   }
 
-  public async delete(
-    listId: string,
-    boardId: string,
-  ): Promise<void> {
+  public async delete(listId: string): Promise<void> {
     await this.prisma.handle(() =>
-      this.db.list.delete({ where: { id: listId, boardId } }),
+      this.db.list.delete({ where: { id: listId } }),
     );
   }
 }

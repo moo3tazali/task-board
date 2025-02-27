@@ -41,10 +41,10 @@ export class ListsController {
   @Permissions()
   @Get()
   public async getOneList(
-    @Query() { boardId }: BoardIdDto,
+    @Query() _: BoardIdDto,
     @Query() { listId }: ListIdDto,
   ): Promise<List> {
-    return this.listsService.getOne(listId, boardId);
+    return this.listsService.getOne(listId);
   }
 
   /**
@@ -87,9 +87,9 @@ export class ListsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete()
   public async deleteList(
-    @Query() { boardId }: BoardIdDto,
+    @Query() _: BoardIdDto,
     @Query() { listId }: ListIdDto,
   ): Promise<void> {
-    await this.listsService.delete(listId, boardId);
+    await this.listsService.delete(listId);
   }
 }

@@ -6,7 +6,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Param,
   Patch,
   Post,
   Query,
@@ -147,9 +146,9 @@ export class BoardMembersController {
   @ApiBearerAuth()
   @Permissions(BoardPermission.BOARD_MEMBERS_DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Delete(':boardId')
+  @Delete()
   public async deleteMembers(
-    @Param() boardIdParam: BoardIdDto,
+    @Query() boardIdParam: BoardIdDto,
     @Query() deleteMembersDto: DeleteMembersDto,
   ): Promise<void> {
     return this.membersService.deleteMembers(
