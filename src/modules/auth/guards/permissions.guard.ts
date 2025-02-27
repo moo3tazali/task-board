@@ -38,16 +38,11 @@ export class PermissionsGuard implements CanActivate {
     // get board id from the request or fail.
     const boardId = this.getRequestBoardIdOrFail(request);
 
-    // get board from the db or fail.
-    const board = await this.getBoardOrFail(boardId, userId);
-
-    // check if the user is the board owner, and allow all actions.
-    if (board.ownerId === userId) return true;
-
-    // get the user membership from the board.
-    const boardMember = board.members[0];
-    if (!boardMember)
-      throw new ForbiddenException('Unauthorized access');
+    // get board member from the db or fail.
+    const boardMember = await this.getBoardMemberOrFail(
+      boardId,
+      userId,
+    );
 
     // check if there are any required permissions to verify.
     if (!requiredPermissions.length) return true;
@@ -56,13 +51,6 @@ export class PermissionsGuard implements CanActivate {
     this.verifyRequiredPermissions(
       requiredPermissions,
       boardMember.permissions,
-    );
-
-    // check if the user has the required permissions to manage members and try to preform actions on his membership.
-    this.checkSelfMemberActions(
-      requiredPermissions,
-      boardMember.memberId,
-      userId,
     );
 
     return true;
@@ -103,25 +91,23 @@ export class PermissionsGuard implements CanActivate {
   }
 
   // try to get the board from the database
-  private async getBoardOrFail(boardId: string, userId: string) {
-    const board = await this.db.board.findUnique({
-      where: { id: boardId },
+  private async getBoardMemberOrFail(
+    boardId: string,
+    userId: string,
+  ) {
+    const boardMember = await this.db.boardMember.findUnique({
+      where: { memberId_boardId: { boardId, memberId: userId } },
       select: {
-        ownerId: true,
-        members: {
-          where: { memberId: userId },
-          take: 1,
-          select: {
-            memberId: true,
-            permissions: true,
-          },
-        },
+        boardId: true,
+        memberId: true,
+        roles: true,
+        permissions: true,
       },
     });
 
-    if (!board) throw new NotFoundException('Board not found');
+    if (!boardMember) throw new NotFoundException('Board not found');
 
-    return board;
+    return boardMember;
   }
 
   // try to verify if the user has the required board permissions.
@@ -129,34 +115,13 @@ export class PermissionsGuard implements CanActivate {
     requiredPermissions: BoardPermission[],
     boardMemberPermissions: BoardPermission[],
   ): void {
-    const hasPermission = requiredPermissions.every((perm) =>
-      boardMemberPermissions?.includes(perm),
+    const missingPermissions = requiredPermissions.filter(
+      (perm) => !boardMemberPermissions.includes(perm),
     );
 
-    if (!hasPermission)
+    if (missingPermissions.length > 0) {
       throw new ForbiddenException(
-        'Unauthorized action, you do not have the required permissions',
-      );
-  }
-
-  // try to verify if the user has the required permissions to manage members and try to preform actions on his membership.
-  private checkSelfMemberActions(
-    requiredPermissions: BoardPermission[],
-    memberId: string,
-    userId: string,
-  ): void {
-    const isMangeMembersPermissions = requiredPermissions.some(
-      (perm) =>
-        [
-          'BOARD_MEMBERS_ROLE_UPDATE',
-          'BOARD_MEMBERS_UPDATE',
-          'BOARD_MEMBERS_DELETE',
-        ].includes(perm),
-    );
-
-    if (memberId === userId && isMangeMembersPermissions) {
-      throw new ForbiddenException(
-        "You can't perform this action on yourself, ask the board owner to do so",
+        `Unauthorized action. You lack the following permissions: ${JSON.stringify(missingPermissions)}`,
       );
     }
   }

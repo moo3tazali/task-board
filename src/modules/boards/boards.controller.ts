@@ -11,13 +11,13 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { BoardPermission } from '@prisma/client';
 
 import { Auth, Permissions } from '../auth/decorators';
 import { BoardsService } from './boards.service';
 import { BoardIdDto, CreateBoardDto, UpdateBoardDto } from './dtos';
 import { Board, BoardList } from './interfaces';
 import { PaginationDto } from 'src/common/dtos';
-import { BoardMembers } from './interfaces';
 
 @Controller('boards')
 export class BoardsController {
@@ -36,7 +36,7 @@ export class BoardsController {
   }
 
   /**
-   * Get user's board list
+   * Get list of my own boards or boards that i'm a member of it.
    */
   @ApiBearerAuth()
   @Get('list')
@@ -63,19 +63,19 @@ export class BoardsController {
    * Get a single board
    */
   @ApiBearerAuth()
+  @Permissions()
   @Get(':boardId')
   public async getBoard(
-    @Auth('id') userId: string,
     @Param() { boardId }: BoardIdDto,
-  ): Promise<BoardMembers> {
-    return this.boardsService.getOne(boardId, userId);
+  ): Promise<Board> {
+    return this.boardsService.getOne(boardId);
   }
 
   /**
    * Update a board
    */
   @ApiBearerAuth()
-  @Permissions('BOARD_UPDATE')
+  @Permissions(BoardPermission.BOARD_UPDATE)
   @Patch(':boardId')
   public async updateBoard(
     @Param() { boardId }: BoardIdDto,
@@ -88,7 +88,7 @@ export class BoardsController {
    * Delete a board
    */
   @ApiBearerAuth()
-  @Permissions('BOARD_DELETE')
+  @Permissions(BoardPermission.BOARD_DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':boardId')
   public async deleteBoard(

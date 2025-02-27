@@ -28,12 +28,14 @@ enum BoardRole {
 enum BoardPermission {
   BOARD_UPDATE
   BOARD_DELETE
-  BOARD_ROLE_UPDATE
+  BOARD_ARCHIVE
+  BOARD_UNARCHIVE
 
+  BOARD_MEMBERS_ROLE_UPDATE
   BOARD_MEMBERS_CREATE
   BOARD_MEMBERS_UPDATE
   BOARD_MEMBERS_DELETE
-  BOARD_MEMBERS_ROLE_UPDATE
+  BOARD_MEMBERS_PERMISSION_UPDATE
 
   LIST_CREATE
   LIST_UPDATE
@@ -89,49 +91,45 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tasks         TaskAssignee[]
   boards        BoardMember[]
+  tasks         TaskAssignee[]
   activities    ActivityLog[]
   notifications Notification[]
-  ownedBoards   Board[]
 
   @@map("users")
 }
 
-model Board {
-  id          String  @id @default(uuid())
-  title       String
-  description String
-  ownerId     String
-  isArchived  Boolean @default(false)
-
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  archivedAt DateTime?
-
-  lists      List[]
-  members    BoardMember[]
-  activities ActivityLog[]
-
-  @@unique([ownerId, title])
-  @@map("boards")
-}
-
 model BoardMember {
-  memberId    String
-  user        User              @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  boardId     String
-  board       Board             @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  memberId String
+  user     User   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  boardId  String
+  board    Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
   roles       BoardRole[]       @default([MEMBER])
   permissions BoardPermission[] @default([TASK_MOVE, TASK_STATUS_UPDATE, TASK_COMMENT_CREATE, TASK_COMMENT_UPDATE, TASK_COMMENT_DELETE, TASK_ATTACHMENT_CREATE, TASK_ATTACHMENT_DELETE, TASK_ATTACHMENT_VIEW])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@id([boardId, memberId])
+  @@id([memberId, boardId])
   @@map("board_members")
+}
+
+model Board {
+  id          String  @id @default(uuid())
+  title       String
+  description String
+  isArchived  Boolean @default(false)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  members    BoardMember[]
+  lists      List[]
+  activities ActivityLog[]
+
+  @@map("boards")
 }
 
 model List {

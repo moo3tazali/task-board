@@ -3,23 +3,20 @@ import {
   User as PrismaUser,
   BoardRole,
   BoardPermission,
+  BoardMember,
 } from '@prisma/client';
 import { Pagination } from 'src/common/interfaces';
 
-type UserType = Pick<
-  PrismaUser,
-  'id' | 'username' | 'email' | 'avatarPath'
->;
-
-class User implements UserType {
+class User implements Partial<PrismaUser> {
   id: string;
   username: string;
   email: string;
   avatarPath: string | null;
 }
 
-export class Member {
+export class Member implements Partial<BoardMember> {
   boardId: string;
+  memberId: string;
   user: User;
   @ApiProperty({
     enum: BoardRole,

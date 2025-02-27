@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { BoardPermission, BoardRole } from '@prisma/client';
+import {
+  BoardMember,
+  BoardPermission,
+  BoardRole,
+} from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaExceptionsService } from '../prisma/prisma-exceptions.service';
 import { Member, MemberWithPermissions } from './interfaces';
-import { rolePermissions } from '../auth/constants';
+import { ROLE_PERMISSIONS } from '../auth/constants';
 import { PaginationDto } from 'src/common/dtos';
 
 @Injectable()
@@ -13,23 +17,6 @@ export class BoardMembersService {
     private readonly db: PrismaService,
     private readonly prisma: PrismaExceptionsService,
   ) {}
-
-  private membersSelect = {
-    select: {
-      boardId: true,
-      user: {
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          avatarPath: true,
-        },
-      },
-      roles: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  };
 
   public async addMembers(
     boardId: string,
@@ -57,7 +44,21 @@ export class BoardMembersService {
       Promise.all([
         this.db.boardMember.findMany({
           where: { boardId },
-          select: this.membersSelect.select,
+          select: {
+            boardId: true,
+            memberId: true,
+            roles: true,
+            createdAt: true,
+            updatedAt: true,
+            user: {
+              omit: {
+                passwordHash: true,
+                roles: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
+          },
           orderBy: { createdAt: pagination.order },
           skip: pagination.skip,
           take: pagination.limit,
@@ -75,31 +76,58 @@ export class BoardMembersService {
   ): Promise<MemberWithPermissions> {
     return this.prisma.handle(() =>
       this.db.boardMember.findUniqueOrThrow({
-        where: { boardId_memberId: { boardId, memberId } },
+        where: { memberId_boardId: { boardId, memberId } },
         select: {
-          ...this.membersSelect.select,
+          boardId: true,
+          memberId: true,
+          roles: true,
           permissions: true,
+          createdAt: true,
+          updatedAt: true,
+          user: {
+            omit: {
+              passwordHash: true,
+              roles: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
         },
       }),
     );
+  }
+
+  public async getMemberRole(
+    boardId: string,
+    memberId: string,
+  ): Promise<BoardRole[]> {
+    const member = await this.prisma.handle(() =>
+      this.db.boardMember.findUniqueOrThrow({
+        where: { memberId_boardId: { boardId, memberId } },
+        select: {
+          roles: true,
+        },
+      }),
+    );
+
+    return member.roles;
   }
 
   public async updateMemberRoles(
     boardId: string,
     memberId: string,
     roles: BoardRole[],
-  ): Promise<Member> {
+  ): Promise<BoardMember> {
     const newPermissions = this.getPermissionsFromRoles(roles);
 
     return this.prisma.handle(
       () =>
         this.db.boardMember.update({
-          where: { boardId_memberId: { boardId, memberId } },
+          where: { memberId_boardId: { boardId, memberId } },
           data: {
             roles,
             permissions: newPermissions,
           },
-          select: this.membersSelect.select,
         }),
       {
         field: 'memberId',
@@ -112,15 +140,14 @@ export class BoardMembersService {
     boardId: string,
     memberId: string,
     permissions: BoardPermission[],
-  ): Promise<Member> {
+  ): Promise<BoardMember> {
     return this.prisma.handle(
       () =>
         this.db.boardMember.update({
-          where: { boardId_memberId: { boardId, memberId } },
+          where: { memberId_boardId: { boardId, memberId } },
           data: {
             permissions,
           },
-          select: this.membersSelect.select,
         }),
       {
         field: 'memberId',
@@ -147,7 +174,7 @@ export class BoardMembersService {
     roles: BoardRole[],
   ): BoardPermission[] {
     return [
-      ...new Set(roles.flatMap((role) => rolePermissions[role])),
+      ...new Set(roles.flatMap((role) => ROLE_PERMISSIONS[role])),
     ];
   }
 }
