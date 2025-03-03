@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Post,
   Query,
@@ -31,7 +32,7 @@ import {
 } from '@prisma/client';
 import { ROLE_PERMISSIONS } from '../auth/constants';
 
-@Controller('boardMembers')
+@Controller('members')
 export class BoardMembersController {
   constructor(private readonly membersService: BoardMembersService) {}
 
@@ -42,25 +43,13 @@ export class BoardMembersController {
   @Permissions(BoardPermission.BOARD_MEMBERS_CREATE)
   @Post()
   public async addMembers(
+    @Param() boardIdDto: BoardIdDto,
     @Body() addMembersDto: AddMembersDto,
   ): Promise<void> {
     await this.membersService.addMembers(
-      addMembersDto.boardId,
+      boardIdDto.boardId,
       addMembersDto.membersIds,
     );
-  }
-
-  /**
-   * Get one member of my own board or the board i'm one of its members
-   */
-  @ApiBearerAuth()
-  @Permissions()
-  @Get()
-  public async getMember(
-    @Query() { boardId }: BoardIdDto,
-    @Query() { memberId }: MemberIdDto,
-  ): Promise<MemberWithPermissions> {
-    return this.membersService.getOne(boardId, memberId);
   }
 
   /**
@@ -70,7 +59,7 @@ export class BoardMembersController {
   @Permissions()
   @Get('list')
   public async membersList(
-    @Query() boardIdDto: BoardIdDto,
+    @Param() boardIdDto: BoardIdDto,
     @Query() pagination: PaginationDto,
   ): Promise<MemberList> {
     const [items, count] = await this.membersService.membersList(
@@ -96,6 +85,7 @@ export class BoardMembersController {
   @Patch('roles')
   public async updateMemberRoles(
     @Auth('id') userId: string,
+    @Param() boardIdDto: BoardIdDto,
     @Body() updateMemberRoles: UpdateMemberRolesDto,
   ): Promise<BoardMember> {
     if (userId === updateMemberRoles.memberId) {
@@ -105,7 +95,7 @@ export class BoardMembersController {
     }
 
     return this.membersService.updateMemberRoles(
-      updateMemberRoles.boardId,
+      boardIdDto.boardId,
       updateMemberRoles.memberId,
       updateMemberRoles.roles,
     );
@@ -119,10 +109,10 @@ export class BoardMembersController {
   @Patch('permissions')
   public async updateMemberPermissions(
     @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
     @Body() updateMemberPermissions: UpdateMemberPermissionsDto,
   ): Promise<BoardMember> {
-    const { boardId, memberId, permissions } =
-      updateMemberPermissions;
+    const { memberId, permissions } = updateMemberPermissions;
 
     const [userRoles, memberRoles] = await Promise.all([
       this.membersService.getMemberRole(boardId, userId),
@@ -141,6 +131,19 @@ export class BoardMembersController {
   }
 
   /**
+   * Get one member of my own board or the board i'm one of its members
+   */
+  @ApiBearerAuth()
+  @Permissions()
+  @Get(':memberId')
+  public async getMember(
+    @Param() { boardId }: BoardIdDto,
+    @Param() { memberId }: MemberIdDto,
+  ): Promise<MemberWithPermissions> {
+    return this.membersService.getOne(boardId, memberId);
+  }
+
+  /**
    * delete members from my own board or a board i have permissions to manage it
    */
   @ApiBearerAuth()
@@ -148,7 +151,7 @@ export class BoardMembersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete()
   public async deleteMembers(
-    @Query() boardIdParam: BoardIdDto,
+    @Param() boardIdParam: BoardIdDto,
     @Query() deleteMembersDto: DeleteMembersDto,
   ): Promise<void> {
     return this.membersService.deleteMembers(

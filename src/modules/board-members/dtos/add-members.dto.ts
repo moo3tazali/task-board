@@ -5,9 +5,8 @@ import {
   IsNotEmpty,
   IsUUID,
 } from 'class-validator';
-import { BoardIdDto } from 'src/modules/boards/dtos';
 
-export class AddMembersDto extends BoardIdDto {
+export class AddMembersDto {
   /**
    * Array of memberIds should be valid UUIDs
    */

@@ -57,13 +57,11 @@ export class ListsService {
   public async update(updatedDto: {
     title: string;
     listId: string;
-    boardId: string;
   }): Promise<List> {
     return this.prisma.handle<List>(() =>
       this.db.list.update({
         where: {
           id: updatedDto.listId,
-          boardId: updatedDto.boardId,
         },
         data: {
           title: updatedDto.title,

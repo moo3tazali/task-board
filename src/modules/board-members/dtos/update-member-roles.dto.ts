@@ -9,9 +9,7 @@ import {
   IsUUID,
 } from 'class-validator';
 
-import { BoardIdDto } from 'src/modules/boards/dtos';
-
-export class UpdateMemberRolesDto extends BoardIdDto {
+export class UpdateMemberRolesDto {
   /**
    * boardId should be a valid UUID
    * @example '6006b460-46b6-451b-b07d-59d15a38657f'

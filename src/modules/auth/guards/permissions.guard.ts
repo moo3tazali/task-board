@@ -69,12 +69,9 @@ export class PermissionsGuard implements CanActivate {
 
   // try to get the boardId from the request or fail.
   private getRequestBoardIdOrFail(request: Req): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const { params, body, query } = request;
+    const { params } = request;
 
-    const boardId =
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      params?.boardId ?? body?.boardId ?? (query?.boardId as string);
+    const boardId = params?.boardId;
 
     if (!boardId) throw new BadRequestException('boardId is missing');
 

@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Post,
   Query,
@@ -29,22 +30,13 @@ export class ListsController {
   @Permissions('LIST_CREATE')
   @Post()
   public async createList(
+    @Param() boardIdDto: BoardIdDto,
     @Body() createListDto: CreateListDto,
   ): Promise<List> {
-    return this.listsService.create(createListDto);
-  }
-
-  /**
-   * Get a single list of my own board or the board i'm one of its members
-   */
-  @ApiBearerAuth()
-  @Permissions()
-  @Get()
-  public async getOneList(
-    @Query() _: BoardIdDto,
-    @Query() { listId }: ListIdDto,
-  ): Promise<List> {
-    return this.listsService.getOne(listId);
+    return this.listsService.create({
+      boardId: boardIdDto.boardId,
+      title: createListDto.title,
+    });
   }
 
   /**
@@ -54,7 +46,7 @@ export class ListsController {
   @Permissions()
   @Get('list')
   public async listsList(
-    @Query() { boardId }: BoardIdDto,
+    @Param() { boardId }: BoardIdDto,
     @Query() pagination: PaginationDto,
   ): Promise<ListList> {
     const [items, count] = await this.listsService.getList(
@@ -74,9 +66,23 @@ export class ListsController {
   @Permissions('LIST_UPDATE')
   @Patch()
   public async updateList(
+    @Param() _: BoardIdDto,
     @Body() updateListDto: UpdateListDto,
   ): Promise<List> {
     return this.listsService.update(updateListDto);
+  }
+
+  /**
+   * Get a single list of my own board or the board i'm one of its members
+   */
+  @ApiBearerAuth()
+  @Permissions()
+  @Get(':listId')
+  public async getOneList(
+    @Param() _: BoardIdDto,
+    @Param() { listId }: ListIdDto,
+  ): Promise<List> {
+    return this.listsService.getOne(listId);
   }
 
   /**
@@ -85,10 +91,10 @@ export class ListsController {
   @ApiBearerAuth()
   @Permissions('LIST_DELETE')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Delete()
+  @Delete(':listId')
   public async deleteList(
-    @Query() _: BoardIdDto,
-    @Query() { listId }: ListIdDto,
+    @Param() _: BoardIdDto,
+    @Param() { listId }: ListIdDto,
   ): Promise<void> {
     await this.listsService.delete(listId);
   }
