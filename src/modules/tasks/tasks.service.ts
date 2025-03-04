@@ -46,6 +46,21 @@ export class TasksService {
     return this.prisma.handle(() =>
       this.db.task.findUniqueOrThrow({
         where: { id: taskId },
+        include: {
+          assignees: {
+            select: {
+              taskId: true,
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  email: true,
+                  avatarPath: true,
+                },
+              },
+            },
+          },
+        },
       }),
     );
   }
@@ -79,6 +94,32 @@ export class TasksService {
   public async delete(taskId: string): Promise<void> {
     await this.prisma.handle(() =>
       this.db.task.delete({ where: { id: taskId } }),
+    );
+  }
+
+  public async assignTask(
+    taskId: string,
+    membersIds: string[],
+  ): Promise<void> {
+    await this.prisma.handle(() =>
+      this.db.taskAssignee.createMany({
+        data: membersIds.map((userId) => ({ taskId, userId })),
+        skipDuplicates: true,
+      }),
+    );
+  }
+
+  public async unassignTask(
+    taskId: string,
+    membersIds: string[],
+  ): Promise<void> {
+    await this.prisma.handle(() =>
+      this.db.taskAssignee.deleteMany({
+        where: {
+          taskId,
+          userId: { in: membersIds },
+        },
+      }),
     );
   }
 }

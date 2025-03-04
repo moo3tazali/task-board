@@ -3,16 +3,20 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { BoardPermission } from '@prisma/client';
 
 import { TasksService } from './tasks.service';
 import { Permissions } from '../auth/decorators';
 import {
+  AssignTaskDto,
   CreateTaskDto,
   MoveTaskDto,
   TaskIdDto,
@@ -20,7 +24,6 @@ import {
   UpdateTaskDto,
 } from './dtos';
 import { BoardIdDto } from '../boards/dtos';
-import { BoardPermission } from '@prisma/client';
 import { Task, TaskList } from './interfaces';
 import { ListIdDto } from '../lists/dtos';
 import { PaginationDto } from 'src/common/dtos';
@@ -40,6 +43,34 @@ export class TasksController {
     @Body() createDto: CreateTaskDto,
   ): Promise<Task> {
     return this.tasksService.create(createDto);
+  }
+
+  /**
+   * Assign task to a board member
+   */
+  @ApiBearerAuth()
+  @Permissions(BoardPermission.TASK_ASSIGN)
+  @HttpCode(HttpStatus.OK)
+  @Post('assign')
+  public async assignTask(
+    @Param() _: BoardIdDto,
+    @Body() { taskId, membersIds }: AssignTaskDto,
+  ): Promise<void> {
+    return this.tasksService.assignTask(taskId, membersIds);
+  }
+
+  /**
+   * Unassign task
+   */
+  @ApiBearerAuth()
+  @Permissions(BoardPermission.TASK_UNASSIGN)
+  @HttpCode(HttpStatus.OK)
+  @Post('unassign')
+  public async unassignTask(
+    @Param() _: BoardIdDto,
+    @Body() { taskId, membersIds }: AssignTaskDto,
+  ): Promise<void> {
+    return this.tasksService.unassignTask(taskId, membersIds);
   }
 
   /**
@@ -109,7 +140,7 @@ export class TasksController {
   }
 
   /**
-   * Get a single task
+   * Get a single task with assignees
    */
   @ApiBearerAuth()
   @Permissions()
