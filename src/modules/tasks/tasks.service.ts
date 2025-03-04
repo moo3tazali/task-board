@@ -16,17 +16,12 @@ export class TasksService {
     listId: string;
     title: string;
     description?: string;
-    status: TaskStatus;
-    dueDate?: Date;
+    dueDate?: string;
   }): Promise<Task> {
-    return this.prisma.handle<Task>(
-      () =>
-        this.db.task.create({
-          data: dto,
-        }),
-      {
-        field: 'title',
-      },
+    return this.prisma.handle<Task>(() =>
+      this.db.task.create({
+        data: dto,
+      }),
     );
   }
 
@@ -61,18 +56,23 @@ export class TasksService {
       title?: string;
       description?: string;
       status?: TaskStatus;
-      dueDate?: Date;
+      dueDate?: string;
     },
   ): Promise<Task> {
-    return this.prisma.handle<Task>(
-      () =>
-        this.db.task.update({
-          where: { id: taskId },
-          data: updatedDto,
-        }),
-      {
-        field: 'title',
-      },
+    return this.prisma.handle<Task>(() =>
+      this.db.task.update({
+        where: { id: taskId },
+        data: updatedDto,
+      }),
+    );
+  }
+
+  public async move(taskId: string, listId: string): Promise<Task> {
+    return this.prisma.handle<Task>(() =>
+      this.db.task.update({
+        where: { id: taskId },
+        data: { listId },
+      }),
     );
   }
 
