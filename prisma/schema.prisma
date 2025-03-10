@@ -78,6 +78,47 @@ enum ActivityAction {
   DELETED
   ASSIGNED
   UNASSIGNED
+  IN_PROGRESS
+  PENDING_REVIEW
+  OVERDUE
+}
+
+enum NotificationType {
+  // Task notifications
+  TASK_ASSIGNED // You have been assigned a new task
+  TASK_UNASSIGNED // You have been unassigned from a task
+  TASK_COMPLETED // A task has been completed
+  TASK_OVERDUE // A task is overdue
+  TASK_MOVED // A task has been moved to another list
+  TASK_STATUS_UPDATED // A task status has been updated
+  TASK_DUE_DATE_UPDATED // A task due date has been updated
+
+  // Comment notifications
+  COMMENT_ADDED // A new comment has been added to a task
+  COMMENT_MENTION // You have been mentioned in a comment
+
+  // Attachment notifications
+  ATTACHMENT_ADDED // A new attachment has been added to a task
+  ATTACHMENT_DELETED // An attachment has been removed from a task
+
+  // List notifications
+  LIST_CREATED // A new list has been created
+  LIST_UPDATED // A list has been updated
+  LIST_DELETED // A list has been deleted
+
+  // Board notifications
+  BOARD_INVITE // You have been invited to a board
+  BOARD_ROLE_UPDATED // Your role in the board has been updated
+  BOARD_DELETED // A board has been deleted
+
+  // Member & permission notifications
+  MEMBER_ADDED // A new member has been added
+  MEMBER_REMOVED // A member has been removed
+  MEMBER_ROLE_UPDATED // A member's role has been updated
+  MEMBER_PERMISSION_UPDATED // A member's permissions have been updated
+
+  // General notifications
+  GENERAL // A general notification not related to any specific category
 }
 
 model User {
@@ -246,12 +287,14 @@ model Attachment {
 }
 
 model Notification {
-  id      String  @id @default(uuid())
-  userId  String
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type    String
-  message String
-  isRead  Boolean @default(false)
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  message     String
+  referenceId String?
+  data        Json?
+  isRead      Boolean          @default(false)
 
   createdAt DateTime @default(now())
 
