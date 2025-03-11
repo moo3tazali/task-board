@@ -5,6 +5,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters';
 import { TransformResInterceptor } from './common/interceptors';
+import { docs } from './middlewares';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -40,6 +41,8 @@ async function bootstrap() {
 
   // use global prefix for all routes
   app.setGlobalPrefix(process.env.PREFIX ?? '');
+
+  app.use(docs);
 
   await app.listen(process.env.PORT ?? 3000);
 }
