@@ -12,17 +12,19 @@ export class NotificationsService {
     private readonly prisma: PrismaExceptionsService,
   ) {}
 
-  public async create(dto: {
-    userId: string;
-    type: NotificationType;
-    message: string;
-    referenceId?: string;
-    data?: { [key: string]: string | number | boolean };
-  }): Promise<Notification> {
+  public async create(
+    dto: {
+      userId: string;
+      type: NotificationType;
+      message: string;
+      referenceId?: string;
+      data?: { [key: string]: string | number | boolean };
+    }[],
+  ): Promise<Notification[]> {
     return this.prisma.handle(() =>
-      this.db.notification.create({
-        data: dto,
-      }),
+      Promise.all(
+        dto.map((data) => this.db.notification.create({ data })),
+      ),
     );
   }
 
