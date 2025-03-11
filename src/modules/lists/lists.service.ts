@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { List } from '@prisma/client';
 
-import { PrismaService } from '../prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos';
+import { PrismaService } from '../prisma/prisma.service';
 import { PrismaExceptionsService } from '../prisma/prisma-exceptions.service';
 
 @Injectable()

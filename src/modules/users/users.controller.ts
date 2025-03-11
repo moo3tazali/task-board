@@ -13,7 +13,7 @@ export class UsersController {
    * Get user profile
    */
   @ApiBearerAuth()
-  @Get('me')
+  @Get('profile')
   public getProfile(@Auth() user: Auth): UserProfile {
     return {
       id: user.id,

@@ -10,6 +10,7 @@ import {
   BoardMembersModule,
   ListsModule,
   TasksModule,
+  NotificationsModule,
 } from './modules';
 
 /**
@@ -33,6 +34,7 @@ import {
     PrismaModule,
     AuthModule,
     UsersModule,
+    NotificationsModule,
     BoardsModule,
     BoardMembersModule,
     ListsModule,
