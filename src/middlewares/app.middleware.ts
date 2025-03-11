@@ -1,10 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 
-export function docs(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  res.redirect('/docs');
-  next();
+export function appMiddleware(_: Request, res: Response) {
+  return res.redirect('/docs');
 }
