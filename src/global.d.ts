@@ -8,6 +8,12 @@ declare module 'express' {
   }
 }
 
+declare module 'socket.io' {
+  interface Socket {
+    user: Omit<User, 'passwordHash'>;
+  }
+}
+
 declare global {
   type Req = ExpressRequest;
   type MulterFile = Express.Multer.File;

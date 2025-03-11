@@ -14,11 +14,13 @@ import { PaginationDto } from 'src/common/dtos';
 import { NotificationsService } from './notifications.service';
 import { NotificationList } from './interfaces';
 import { NotificationIdDto } from './dtos';
+import { NotificationsGateway } from './notifications.gateway';
 
 @Controller('notifications')
 export class NotificationsController {
   constructor(
     private readonly notificationsService: NotificationsService,
+    private readonly notificationGateway: NotificationsGateway,
   ) {}
 
   /**
@@ -55,5 +57,26 @@ export class NotificationsController {
     @Body() { notificationId }: NotificationIdDto,
   ): Promise<void> {
     await this.notificationsService.read(notificationId);
+  }
+
+  /**
+   * Send a test notification
+   */
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Post('test')
+  public test(@Auth('id') userId: string): void {
+    const createdAt = new Date();
+
+    this.notificationGateway.send(userId, {
+      id: '123',
+      userId,
+      type: 'GENERAL',
+      message: 'This is a test notification',
+      isRead: false,
+      data: null,
+      referenceId: null,
+      createdAt,
+    });
   }
 }
