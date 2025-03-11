@@ -4,26 +4,37 @@ import { Notification, NotificationType } from '@prisma/client';
 import { PaginationDto } from 'src/common/dtos';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaExceptionsService } from '../prisma/prisma-exceptions.service';
+import { NotificationMessages } from './constants';
+import { NotificationsGateway } from './notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     private readonly db: PrismaService,
     private readonly prisma: PrismaExceptionsService,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   public async create(
     dto: {
       userId: string;
       type: NotificationType;
-      message: string;
+      message?: string;
       referenceId?: string;
       data?: { [key: string]: string | number | boolean };
     }[],
   ): Promise<Notification[]> {
     return this.prisma.handle(() =>
       Promise.all(
-        dto.map((data) => this.db.notification.create({ data })),
+        dto.map((data) =>
+          this.db.notification.create({
+            data: {
+              ...data,
+              message:
+                data?.message || NotificationMessages[data.type],
+            },
+          }),
+        ),
       ),
     );
   }
@@ -54,5 +65,23 @@ export class NotificationsService {
         },
       }),
     );
+  }
+
+  public createAndSend(
+    dto: {
+      userId: string;
+      type: NotificationType;
+      message?: string;
+      referenceId?: string;
+      data?: { [key: string]: string | number | boolean };
+    }[],
+  ) {
+    void this.create(dto)
+      .then((notifications) =>
+        this.notificationsGateway.send(notifications),
+      )
+      .catch((error) =>
+        console.error('Failed to send notification:', error),
+      );
   }
 }

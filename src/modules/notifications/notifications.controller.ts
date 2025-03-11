@@ -15,12 +15,13 @@ import { NotificationsService } from './notifications.service';
 import { NotificationList } from './interfaces';
 import { NotificationIdDto } from './dtos';
 import { NotificationsGateway } from './notifications.gateway';
+import { NotificationType } from '@prisma/client';
 
 @Controller('notifications')
 export class NotificationsController {
   constructor(
     private readonly notificationsService: NotificationsService,
-    private readonly notificationGateway: NotificationsGateway,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   /**
@@ -68,15 +69,19 @@ export class NotificationsController {
   public test(@Auth('id') userId: string): void {
     const createdAt = new Date();
 
-    this.notificationGateway.send(userId, {
-      id: '123',
-      userId,
-      type: 'GENERAL',
-      message: 'This is a test notification',
-      isRead: false,
-      data: null,
-      referenceId: null,
-      createdAt,
-    });
+    const testNotification = [
+      {
+        id: '123',
+        userId,
+        type: NotificationType.GENERAL,
+        message: 'This is a test notification',
+        isRead: false,
+        data: null,
+        referenceId: null,
+        createdAt,
+      },
+    ];
+
+    this.notificationsGateway.send(testNotification);
   }
 }

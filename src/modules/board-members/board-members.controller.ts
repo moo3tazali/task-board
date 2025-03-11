@@ -29,12 +29,17 @@ import {
   BoardMember,
   BoardPermission,
   BoardRole,
+  NotificationType,
 } from '@prisma/client';
 import { ROLE_PERMISSIONS } from '../auth/constants';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Controller('members')
 export class BoardMembersController {
-  constructor(private readonly membersService: BoardMembersService) {}
+  constructor(
+    private readonly membersService: BoardMembersService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Add members to my own board or a board i have permissions to manage it
@@ -43,12 +48,19 @@ export class BoardMembersController {
   @Permissions(BoardPermission.BOARD_MEMBERS_CREATE)
   @Post()
   public async addMembers(
-    @Param() boardIdDto: BoardIdDto,
-    @Body() addMembersDto: AddMembersDto,
+    @Param() { boardId }: BoardIdDto,
+    @Body() { membersIds }: AddMembersDto,
   ): Promise<void> {
-    await this.membersService.addMembers(
-      boardIdDto.boardId,
-      addMembersDto.membersIds,
+    // ADD MEMBERS TO DB
+    await this.membersService.addMembers(boardId, membersIds);
+
+    // CREATE NOTIFICATIONS
+    this.notificationsService.createAndSend(
+      membersIds.map((memberId) => ({
+        userId: memberId,
+        referenceId: boardId,
+        type: NotificationType.BOARD_INVITE,
+      })),
     );
   }
 
@@ -85,20 +97,33 @@ export class BoardMembersController {
   @Patch('roles')
   public async updateMemberRoles(
     @Auth('id') userId: string,
-    @Param() boardIdDto: BoardIdDto,
-    @Body() updateMemberRoles: UpdateMemberRolesDto,
+    @Param() { boardId }: BoardIdDto,
+    @Body() { memberId, roles }: UpdateMemberRolesDto,
   ): Promise<BoardMember> {
-    if (userId === updateMemberRoles.memberId) {
+    // check if self role update
+    if (userId === memberId) {
       throw new ForbiddenException(
         'Unauthorized action, You cannot update your own roles.',
       );
     }
 
-    return this.membersService.updateMemberRoles(
-      boardIdDto.boardId,
-      updateMemberRoles.memberId,
-      updateMemberRoles.roles,
+    // update roles
+    const updatedMember = await this.membersService.updateMemberRoles(
+      boardId,
+      memberId,
+      roles,
     );
+
+    // create notifications
+    this.notificationsService.createAndSend([
+      {
+        userId: memberId,
+        referenceId: boardId,
+        type: NotificationType.BOARD_ROLE_UPDATED,
+      },
+    ]);
+
+    return updatedMember;
   }
 
   /**
@@ -110,10 +135,8 @@ export class BoardMembersController {
   public async updateMemberPermissions(
     @Auth('id') userId: string,
     @Param() { boardId }: BoardIdDto,
-    @Body() updateMemberPermissions: UpdateMemberPermissionsDto,
+    @Body() { memberId, permissions }: UpdateMemberPermissionsDto,
   ): Promise<BoardMember> {
-    const { memberId, permissions } = updateMemberPermissions;
-
     const [userRoles, memberRoles] = await Promise.all([
       this.membersService.getMemberRole(boardId, userId),
       this.membersService.getMemberRole(boardId, memberId),
@@ -123,11 +146,32 @@ export class BoardMembersController {
     this.verifyNotHigherRoleUpdate(userRoles, memberRoles);
     this.verifyValidPermissionsToRoles(memberRoles, permissions);
 
-    return this.membersService.updateMemberPermissions(
-      boardId,
-      memberId,
-      permissions,
-    );
+    const updatedMember =
+      await this.membersService.updateMemberPermissions(
+        boardId,
+        memberId,
+        permissions,
+      );
+
+    this.notificationsService.createAndSend([
+      {
+        userId: memberId,
+        referenceId: boardId,
+        type: NotificationType.BOARD_PERMISIONS_UPDATED,
+      },
+    ]);
+
+    if (!userRoles.includes(BoardRole.OWNER)) {
+      this.notificationsService.createAndSend([
+        {
+          userId: await this.membersService.getBoardOwnerId(boardId),
+          referenceId: memberId,
+          type: NotificationType.MEMBER_PERMISSION_UPDATED,
+        },
+      ]);
+    }
+
+    return updatedMember;
   }
 
   /**
@@ -151,13 +195,37 @@ export class BoardMembersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete()
   public async deleteMembers(
-    @Param() boardIdParam: BoardIdDto,
-    @Query() deleteMembersDto: DeleteMembersDto,
+    @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
+    @Query() { memberIds }: DeleteMembersDto,
   ): Promise<void> {
-    return this.membersService.deleteMembers(
-      boardIdParam.boardId,
-      deleteMembersDto.memberIds,
+    await this.membersService.deleteMembers(boardId, memberIds);
+
+    this.notificationsService.createAndSend(
+      memberIds.map((memberId) => ({
+        userId: memberId,
+        referenceId: boardId,
+        type: NotificationType.MEMBER_REMOVED,
+        message: 'You have been removed from a board',
+      })),
     );
+
+    void this.membersService
+      .getMemberRole(boardId, userId)
+      .then(async (userRoles) => {
+        if (!userRoles.includes(BoardRole.OWNER)) {
+          const userId =
+            await this.membersService.getBoardOwnerId(boardId);
+          this.notificationsService.createAndSend(
+            memberIds.map((memberId) => ({
+              userId,
+              referenceId: memberId,
+              type: NotificationType.MEMBER_REMOVED,
+            })),
+          );
+        }
+      })
+      .catch(() => {});
   }
 
   /**

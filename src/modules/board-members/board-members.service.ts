@@ -113,6 +113,19 @@ export class BoardMembersService {
     return member.roles;
   }
 
+  public async getBoardOwnerId(boardId: string): Promise<string> {
+    return (
+      await this.prisma.handle(() =>
+        this.db.boardMember.findFirstOrThrow({
+          where: { boardId, roles: { has: BoardRole.OWNER } },
+          select: {
+            memberId: true,
+          },
+        }),
+      )
+    )?.memberId;
+  }
+
   public async updateMemberRoles(
     boardId: string,
     memberId: string,

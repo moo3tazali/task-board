@@ -53,7 +53,9 @@ export class NotificationsGateway
     // console.log(`user_${userId} JOINED!`);
   }
 
-  public send(userId: string, notification: Notification): void {
-    this.server.to(`user_${userId}`).emit('new', notification);
+  public send(notifications: Notification[]): void {
+    notifications.forEach((n) =>
+      this.server.to(`user_${n.userId}`).emit('new', n),
+    );
   }
 }
