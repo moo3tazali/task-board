@@ -15,5 +15,6 @@ import { RouterModule } from '@nestjs/core';
       },
     ]),
   ],
+  exports: [BoardMembersService],
 })
 export class BoardMembersModule {}

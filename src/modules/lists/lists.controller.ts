@@ -14,14 +14,19 @@ import {
 import { ListsService } from './lists.service';
 import { CreateListDto, ListIdDto, UpdateListDto } from './dtos';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import { Permissions } from '../auth/decorators';
+import { Auth, Permissions } from '../auth/decorators';
 import { List, ListList } from './interfaces';
 import { BoardIdDto } from '../boards/dtos';
 import { PaginationDto } from 'src/common/dtos';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 
 @Controller('lists')
 export class ListsController {
-  constructor(private readonly listsService: ListsService) {}
+  constructor(
+    private readonly listsService: ListsService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /**
    * Create a new list in my own board or a board i have permissions to manage it
@@ -30,13 +35,23 @@ export class ListsController {
   @Permissions('LIST_CREATE')
   @Post()
   public async createList(
-    @Param() boardIdDto: BoardIdDto,
-    @Body() createListDto: CreateListDto,
+    @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
+    @Body() { title }: CreateListDto,
   ): Promise<List> {
-    return this.listsService.create({
-      boardId: boardIdDto.boardId,
-      title: createListDto.title,
+    const createdList = await this.listsService.create({
+      boardId,
+      title,
     });
+
+    this.notifications.notifiBoardMembers({
+      boardId,
+      userId,
+      type: NotificationType.LIST_CREATED,
+      data: createdList,
+    });
+
+    return createdList;
   }
 
   /**
@@ -66,10 +81,20 @@ export class ListsController {
   @Permissions('LIST_UPDATE')
   @Patch()
   public async updateList(
-    @Param() _: BoardIdDto,
+    @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
     @Body() updateListDto: UpdateListDto,
   ): Promise<List> {
-    return this.listsService.update(updateListDto);
+    const updatedList = await this.listsService.update(updateListDto);
+
+    this.notifications.notifiBoardMembers({
+      boardId,
+      userId,
+      type: NotificationType.LIST_UPDATED,
+      data: updatedList,
+    });
+
+    return updatedList;
   }
 
   /**
@@ -93,9 +118,17 @@ export class ListsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':listId')
   public async deleteList(
-    @Param() _: BoardIdDto,
+    @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
     @Param() { listId }: ListIdDto,
   ): Promise<void> {
     await this.listsService.delete(listId);
+
+    this.notifications.notifiBoardMembers({
+      boardId,
+      userId,
+      type: NotificationType.LIST_DELETED,
+      data: { listId },
+    });
   }
 }

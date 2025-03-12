@@ -38,7 +38,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 export class BoardMembersController {
   constructor(
     private readonly membersService: BoardMembersService,
-    private readonly notificationsService: NotificationsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -48,20 +48,30 @@ export class BoardMembersController {
   @Permissions(BoardPermission.BOARD_MEMBERS_CREATE)
   @Post()
   public async addMembers(
+    @Auth('id') userId: string,
     @Param() { boardId }: BoardIdDto,
     @Body() { membersIds }: AddMembersDto,
   ): Promise<void> {
     // ADD MEMBERS TO DB
     await this.membersService.addMembers(boardId, membersIds);
 
-    // CREATE NOTIFICATIONS
-    this.notificationsService.createAndSend(
+    // notifi all added members
+    this.notifications.createAndSend(
       membersIds.map((memberId) => ({
         userId: memberId,
         referenceId: boardId,
         type: NotificationType.BOARD_INVITE,
+        data: { membersIds },
       })),
     );
+
+    // notifi the board owner
+    this.notifications.notifiBoardOwner({
+      boardId,
+      userId,
+      type: NotificationType.MEMBER_ADDED,
+      data: { membersIds },
+    });
   }
 
   /**
@@ -115,11 +125,12 @@ export class BoardMembersController {
     );
 
     // create notifications
-    this.notificationsService.createAndSend([
+    this.notifications.createAndSend([
       {
         userId: memberId,
         referenceId: boardId,
         type: NotificationType.BOARD_ROLE_UPDATED,
+        data: { memberId },
       },
     ]);
 
@@ -153,23 +164,23 @@ export class BoardMembersController {
         permissions,
       );
 
-    this.notificationsService.createAndSend([
+    // notifi the member
+    this.notifications.createAndSend([
       {
         userId: memberId,
         referenceId: boardId,
         type: NotificationType.BOARD_PERMISIONS_UPDATED,
+        data: { memberId },
       },
     ]);
 
-    if (!userRoles.includes(BoardRole.OWNER)) {
-      this.notificationsService.createAndSend([
-        {
-          userId: await this.membersService.getBoardOwnerId(boardId),
-          referenceId: memberId,
-          type: NotificationType.MEMBER_PERMISSION_UPDATED,
-        },
-      ]);
-    }
+    // notifi board owner
+    this.notifications.notifiBoardOwner({
+      boardId,
+      userId,
+      type: NotificationType.MEMBER_PERMISSION_UPDATED,
+      data: { memberId },
+    });
 
     return updatedMember;
   }
@@ -201,31 +212,23 @@ export class BoardMembersController {
   ): Promise<void> {
     await this.membersService.deleteMembers(boardId, memberIds);
 
-    this.notificationsService.createAndSend(
+    // notifi all removed members
+    this.notifications.createAndSend(
       memberIds.map((memberId) => ({
         userId: memberId,
         referenceId: boardId,
-        type: NotificationType.MEMBER_REMOVED,
-        message: 'You have been removed from a board',
+        type: NotificationType.BOARD_MEMBER_REMOVED,
+        data: { memberIds },
       })),
     );
 
-    void this.membersService
-      .getMemberRole(boardId, userId)
-      .then(async (userRoles) => {
-        if (!userRoles.includes(BoardRole.OWNER)) {
-          const userId =
-            await this.membersService.getBoardOwnerId(boardId);
-          this.notificationsService.createAndSend(
-            memberIds.map((memberId) => ({
-              userId,
-              referenceId: memberId,
-              type: NotificationType.MEMBER_REMOVED,
-            })),
-          );
-        }
-      })
-      .catch(() => {});
+    // notifi board owner
+    this.notifications.notifiBoardOwner({
+      boardId,
+      userId,
+      type: NotificationType.MEMBER_REMOVED,
+      data: { memberIds },
+    });
   }
 
   /**

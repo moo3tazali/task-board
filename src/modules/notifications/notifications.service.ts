@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { Notification, NotificationType } from '@prisma/client';
+import {
+  BoardRole,
+  Notification,
+  NotificationType,
+} from '@prisma/client';
 
 import { PaginationDto } from 'src/common/dtos';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaExceptionsService } from '../prisma/prisma-exceptions.service';
 import { NotificationMessages } from './constants';
 import { NotificationsGateway } from './notifications.gateway';
+import { BoardMembersService } from '../board-members/board-members.service';
 
 @Injectable()
 export class NotificationsService {
@@ -13,6 +18,7 @@ export class NotificationsService {
     private readonly db: PrismaService,
     private readonly prisma: PrismaExceptionsService,
     private readonly notificationsGateway: NotificationsGateway,
+    private readonly membersService: BoardMembersService,
   ) {}
 
   public async create(
@@ -21,7 +27,9 @@ export class NotificationsService {
       type: NotificationType;
       message?: string;
       referenceId?: string;
-      data?: { [key: string]: string | number | boolean };
+      data?: {
+        [key: string]: string | number | boolean | [] | object;
+      };
     }[],
   ): Promise<Notification[]> {
     return this.prisma.handle(() =>
@@ -73,7 +81,9 @@ export class NotificationsService {
       type: NotificationType;
       message?: string;
       referenceId?: string;
-      data?: { [key: string]: string | number | boolean };
+      data?: {
+        [key: string]: string | number | boolean | [] | object;
+      };
     }[],
   ) {
     void this.create(dto)
@@ -83,5 +93,80 @@ export class NotificationsService {
       .catch((error) =>
         console.error('Failed to send notification:', error),
       );
+  }
+
+  public notifiBoardMembers(obj: {
+    boardId: string;
+    userId: string;
+    type: NotificationType;
+    message?: string;
+    data?: {
+      [key: string]: string | number | boolean | [] | object;
+    };
+  }) {
+    this.membersService
+      .getMembersIds(obj.boardId)
+      .then((memberIds) => {
+        memberIds.forEach(({ memberId }) => {
+          if (memberId === obj.userId) return;
+          this.createAndSend([
+            {
+              userId: memberId,
+              referenceId: obj.boardId,
+              type: obj.type,
+              data: obj.data,
+              message: obj.message,
+            },
+          ]);
+        });
+      })
+      .catch((error) => {
+        console.error(
+          'Failed to get members ids at notifiactions service',
+          error,
+        );
+      });
+  }
+
+  public notifiBoardOwner(obj: {
+    boardId: string;
+    userId: string;
+    type: NotificationType;
+    data?: {
+      [key: string]: string | number | boolean | [] | object;
+    };
+    message?: string;
+  }) {
+    this.membersService
+      .getMemberRole(obj.boardId, obj.userId)
+      .then((userRoles) => {
+        if (userRoles.includes(BoardRole.OWNER)) return;
+
+        void this.membersService
+          .getBoardOwnerId(obj.boardId)
+          .then((ownerId) => {
+            this.createAndSend([
+              {
+                userId: ownerId,
+                referenceId: obj.boardId,
+                type: obj.type,
+                data: obj.data,
+                message: obj.message,
+              },
+            ]);
+          })
+          .catch((error) => {
+            console.error(
+              'Failed to get board owner id at notifications service',
+              error,
+            );
+          });
+      })
+      .catch((error) => {
+        console.error(
+          'Failed to get member role at notifications service',
+          error,
+        );
+      });
   }
 }

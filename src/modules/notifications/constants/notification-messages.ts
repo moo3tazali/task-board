@@ -38,6 +38,8 @@ export const NotificationMessages: Record<NotificationType, string> =
     [NotificationType.BOARD_PERMISIONS_UPDATED]:
       'Your permissions in the board have been updated.',
     [NotificationType.BOARD_DELETED]: 'A board has been deleted.',
+    [NotificationType.BOARD_MEMBER_REMOVED]:
+      'You have been removed from a board',
 
     [NotificationType.MEMBER_ADDED]: 'A new member has been added.',
     [NotificationType.MEMBER_REMOVED]: 'A member has been removed.',

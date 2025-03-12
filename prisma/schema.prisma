@@ -111,6 +111,7 @@ enum NotificationType {
   BOARD_ROLE_UPDATED // Your role in the board has been updated
   BOARD_PERMISIONS_UPDATED // Your permissions in the board has been updated
   BOARD_DELETED // A board has been deleted
+  BOARD_MEMBER_REMOVED // You have been removed from a board
 
   // Member & permission notifications
   MEMBER_ADDED // A new member has been added

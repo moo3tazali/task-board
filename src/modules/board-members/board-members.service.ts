@@ -70,6 +70,19 @@ export class BoardMembersService {
     );
   }
 
+  public async getMembersIds(
+    boardId: string,
+  ): Promise<{ memberId: string }[]> {
+    return this.prisma.handle(() =>
+      this.db.boardMember.findMany({
+        where: { boardId },
+        select: {
+          memberId: true,
+        },
+      }),
+    );
+  }
+
   public async getOne(
     boardId: string,
     memberId: string,
