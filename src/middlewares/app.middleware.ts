@@ -1,5 +1,12 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 
-export function appMiddleware(_: Request, res: Response) {
-  return res.redirect('/docs');
+export function appMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  if (req.url === '/') {
+    return res.redirect('/docs');
+  }
+  next();
 }
