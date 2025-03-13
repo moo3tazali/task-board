@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  BoardRole,
-  Notification,
-  NotificationType,
-} from '@prisma/client';
+import { Notification, NotificationType } from '@prisma/client';
 
 import { PaginationDto } from 'src/common/dtos';
 import { PrismaService } from '../prisma/prisma.service';
@@ -128,7 +124,7 @@ export class NotificationsService {
       });
   }
 
-  public notifiBoardOwner(obj: {
+  public notifiBoardOwnerAndMangers(obj: {
     boardId: string;
     userId: string;
     type: NotificationType;
@@ -138,33 +134,24 @@ export class NotificationsService {
     message?: string;
   }) {
     this.membersService
-      .getMemberRole(obj.boardId, obj.userId)
-      .then((userRoles) => {
-        if (userRoles.includes(BoardRole.OWNER)) return;
-
-        void this.membersService
-          .getBoardOwnerId(obj.boardId)
-          .then((ownerId) => {
-            this.createAndSend([
-              {
-                userId: ownerId,
-                referenceId: obj.boardId,
-                type: obj.type,
-                data: obj.data,
-                message: obj.message,
-              },
-            ]);
-          })
-          .catch((error) => {
-            console.error(
-              'Failed to get board owner id at notifications service',
-              error,
-            );
-          });
+      .getBoardOwnerAndManagersIds(obj.boardId)
+      .then((memberIds) => {
+        memberIds.forEach(({ memberId }) => {
+          if (memberId === obj.userId) return;
+          this.createAndSend([
+            {
+              userId: memberId,
+              referenceId: obj.boardId,
+              type: obj.type,
+              data: obj.data,
+              message: obj.message,
+            },
+          ]);
+        });
       })
       .catch((error) => {
         console.error(
-          'Failed to get member role at notifications service',
+          'Failed to get owner and managers ids at notifiactions service',
           error,
         );
       });

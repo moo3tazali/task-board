@@ -85,6 +85,9 @@ enum ActivityAction {
 
 enum NotificationType {
   // Task notifications
+  TASK_CREATED // A new task has been created
+  TASK_UPDATED // A task has been updated
+  TASK_DELETED // A task has been deleted
   TASK_ASSIGNED // You have been assigned a new task
   TASK_UNASSIGNED // You have been unassigned from a task
   TASK_COMPLETED // A task has been completed

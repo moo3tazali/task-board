@@ -2,6 +2,9 @@ import { NotificationType } from '@prisma/client';
 
 export const NotificationMessages: Record<NotificationType, string> =
   {
+    [NotificationType.TASK_CREATED]: 'A new task has been created',
+    [NotificationType.TASK_UPDATED]: 'A task has been updated',
+    [NotificationType.TASK_DELETED]: 'A task has been deleted',
     [NotificationType.TASK_ASSIGNED]:
       'A new task has been assigned to you.',
     [NotificationType.TASK_UNASSIGNED]:

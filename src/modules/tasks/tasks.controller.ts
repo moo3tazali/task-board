@@ -11,10 +11,10 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import { BoardPermission } from '@prisma/client';
+import { BoardPermission, NotificationType } from '@prisma/client';
 
 import { TasksService } from './tasks.service';
-import { Permissions } from '../auth/decorators';
+import { Auth, Permissions } from '../auth/decorators';
 import {
   AssignTaskDto,
   CreateTaskDto,
@@ -27,10 +27,14 @@ import { BoardIdDto } from '../boards/dtos';
 import { Task, TaskList } from './interfaces';
 import { ListIdDto } from '../lists/dtos';
 import { PaginationDto } from 'src/common/dtos';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /**
    * Create a new task
@@ -39,24 +43,44 @@ export class TasksController {
   @Permissions(BoardPermission.TASK_CREATE)
   @Post()
   public async createTask(
-    @Param() _: BoardIdDto,
+    @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
     @Body() createDto: CreateTaskDto,
   ): Promise<Task> {
-    return this.tasksService.create(createDto);
+    const createdTask = await this.tasksService.create(createDto);
+
+    this.notifications.notifiBoardOwnerAndMangers({
+      boardId,
+      userId,
+      type: NotificationType.TASK_CREATED,
+      data: { createdTask },
+    });
+
+    return createdTask;
   }
 
   /**
-   * Assign task to a board member
+   * Assign task to a board members
    */
   @ApiBearerAuth()
   @Permissions(BoardPermission.TASK_ASSIGN)
   @HttpCode(HttpStatus.OK)
   @Post('assign')
   public async assignTask(
-    @Param() _: BoardIdDto,
+    // @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
     @Body() { taskId, membersIds }: AssignTaskDto,
   ): Promise<void> {
-    return this.tasksService.assignTask(taskId, membersIds);
+    await this.tasksService.assignTask(taskId, membersIds);
+
+    this.notifications.createAndSend(
+      membersIds.map((memberId) => ({
+        userId: memberId,
+        referenceId: boardId,
+        type: NotificationType.TASK_ASSIGNED,
+        data: { taskId },
+      })),
+    );
   }
 
   /**
@@ -67,10 +91,19 @@ export class TasksController {
   @HttpCode(HttpStatus.OK)
   @Post('unassign')
   public async unassignTask(
-    @Param() _: BoardIdDto,
+    @Param() { boardId }: BoardIdDto,
     @Body() { taskId, membersIds }: AssignTaskDto,
   ): Promise<void> {
-    return this.tasksService.unassignTask(taskId, membersIds);
+    await this.tasksService.unassignTask(taskId, membersIds);
+
+    this.notifications.createAndSend(
+      membersIds.map((memberId) => ({
+        userId: memberId,
+        referenceId: boardId,
+        type: NotificationType.TASK_UNASSIGNED,
+        data: { taskId },
+      })),
+    );
   }
 
   /**
@@ -83,12 +116,22 @@ export class TasksController {
   )
   @Patch()
   public async updateTask(
-    @Param() _: BoardIdDto,
+    @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
     @Body() updateDto: UpdateTaskDto,
   ): Promise<Task> {
     const { taskId, ...dto } = updateDto;
 
-    return this.tasksService.update(taskId, dto);
+    const updatedTask = await this.tasksService.update(taskId, dto);
+
+    this.notifications.notifiBoardOwnerAndMangers({
+      boardId,
+      userId,
+      type: NotificationType.TASK_UPDATED,
+      data: { updatedTask },
+    });
+
+    return updatedTask;
   }
 
   /**
@@ -98,10 +141,22 @@ export class TasksController {
   @Permissions(BoardPermission.TASK_STATUS_UPDATE)
   @Patch('status')
   public async updateTaskStatus(
-    @Param() _: BoardIdDto,
+    @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
     @Body() { taskId, status }: UpdateStatusDto,
   ): Promise<Task> {
-    return this.tasksService.update(taskId, { status });
+    const updatedTask = await this.tasksService.update(taskId, {
+      status,
+    });
+
+    this.notifications.notifiBoardMembers({
+      boardId,
+      userId,
+      type: NotificationType.TASK_STATUS_UPDATED,
+      data: { updatedTask },
+    });
+
+    return updatedTask;
   }
 
   /**
@@ -111,10 +166,20 @@ export class TasksController {
   @Permissions(BoardPermission.TASK_MOVE)
   @Patch('move')
   public async updateTaskList(
-    @Param() _: BoardIdDto,
+    @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
     @Body() { taskId, listId }: MoveTaskDto,
   ): Promise<Task> {
-    return this.tasksService.move(taskId, listId);
+    const movedTask = await this.tasksService.move(taskId, listId);
+
+    this.notifications.notifiBoardMembers({
+      boardId,
+      userId,
+      type: NotificationType.TASK_MOVED,
+      data: { movedTask },
+    });
+
+    return movedTask;
   }
 
   /**
@@ -159,9 +224,17 @@ export class TasksController {
   @Permissions(BoardPermission.TASK_DELETE)
   @Delete(':taskId')
   public async deleteTask(
-    @Param() _: BoardIdDto,
+    @Auth('id') userId: string,
+    @Param() { boardId }: BoardIdDto,
     @Param() { taskId }: TaskIdDto,
   ): Promise<void> {
     await this.tasksService.delete(taskId);
+
+    this.notifications.notifiBoardMembers({
+      boardId,
+      userId,
+      type: NotificationType.TASK_DELETED,
+      data: { taskId },
+    });
   }
 }

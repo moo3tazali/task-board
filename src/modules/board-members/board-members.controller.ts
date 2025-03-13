@@ -66,7 +66,7 @@ export class BoardMembersController {
     );
 
     // notifi the board owner
-    this.notifications.notifiBoardOwner({
+    this.notifications.notifiBoardOwnerAndMangers({
       boardId,
       userId,
       type: NotificationType.MEMBER_ADDED,
@@ -175,7 +175,7 @@ export class BoardMembersController {
     ]);
 
     // notifi board owner
-    this.notifications.notifiBoardOwner({
+    this.notifications.notifiBoardOwnerAndMangers({
       boardId,
       userId,
       type: NotificationType.MEMBER_PERMISSION_UPDATED,
@@ -223,7 +223,7 @@ export class BoardMembersController {
     );
 
     // notifi board owner
-    this.notifications.notifiBoardOwner({
+    this.notifications.notifiBoardOwnerAndMangers({
       boardId,
       userId,
       type: NotificationType.MEMBER_REMOVED,
