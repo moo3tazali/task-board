@@ -97,6 +97,19 @@ export class TasksService {
     );
   }
 
+  public async getTaskAssignee(
+    taskId: string,
+  ): Promise<{ userId: string }[]> {
+    return this.prisma.handle(() =>
+      this.db.taskAssignee.findMany({
+        where: { taskId },
+        select: {
+          userId: true,
+        },
+      }),
+    );
+  }
+
   public async assignTask(
     taskId: string,
     membersIds: string[],
