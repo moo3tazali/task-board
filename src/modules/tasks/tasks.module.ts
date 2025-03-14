@@ -14,5 +14,6 @@ import { RouterModule } from '@nestjs/core';
       },
     ]),
   ],
+  exports: [TasksService],
 })
 export class TasksModule {}

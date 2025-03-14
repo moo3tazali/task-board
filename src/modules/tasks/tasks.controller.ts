@@ -49,7 +49,7 @@ export class TasksController {
   ): Promise<Task> {
     const createdTask = await this.tasksService.create(createDto);
 
-    this.notifications.notifiBoardOwnerAndMangers({
+    this.notifications.notifiBoardMembers({
       boardId,
       userId,
       type: NotificationType.TASK_CREATED,
@@ -131,6 +131,13 @@ export class TasksController {
       data: { updatedTask },
     });
 
+    this.notifications.notifiTaskAssignees({
+      taskId,
+      userId,
+      type: NotificationType.TASK_UPDATED,
+      data: { updatedTask },
+    });
+
     return updatedTask;
   }
 
@@ -149,7 +156,14 @@ export class TasksController {
       status,
     });
 
-    this.notifications.notifiBoardMembers({
+    this.notifications.notifiTaskAssignees({
+      taskId,
+      userId,
+      type: NotificationType.TASK_STATUS_UPDATED,
+      data: { updatedTask },
+    });
+
+    this.notifications.notifiBoardOwnerAndMangers({
       boardId,
       userId,
       type: NotificationType.TASK_STATUS_UPDATED,
@@ -172,7 +186,14 @@ export class TasksController {
   ): Promise<Task> {
     const movedTask = await this.tasksService.move(taskId, listId);
 
-    this.notifications.notifiBoardMembers({
+    this.notifications.notifiTaskAssignees({
+      taskId,
+      userId,
+      type: NotificationType.TASK_MOVED,
+      data: { movedTask },
+    });
+
+    this.notifications.notifiBoardOwnerAndMangers({
       boardId,
       userId,
       type: NotificationType.TASK_MOVED,

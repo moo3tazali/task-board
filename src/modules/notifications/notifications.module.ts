@@ -6,6 +6,7 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
 import { UserModule } from '../user/user.module';
 import { BoardMembersService } from '../board-members/board-members.service';
+import { TasksService } from '../tasks/tasks.service';
 
 @Global()
 @Module({
@@ -13,6 +14,7 @@ import { BoardMembersService } from '../board-members/board-members.service';
     NotificationsService,
     NotificationsGateway,
     BoardMembersService,
+    TasksService,
   ],
   controllers: [NotificationsController],
   imports: [

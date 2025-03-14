@@ -97,7 +97,7 @@ export class TasksService {
     );
   }
 
-  public async getTaskAssignee(
+  public async getTaskAssignees(
     taskId: string,
   ): Promise<{ userId: string }[]> {
     return this.prisma.handle(() =>

@@ -7,6 +7,7 @@ import { PrismaExceptionsService } from '../prisma/prisma-exceptions.service';
 import { NotificationMessages } from './constants';
 import { NotificationsGateway } from './notifications.gateway';
 import { BoardMembersService } from '../board-members/board-members.service';
+import { TasksService } from '../tasks/tasks.service';
 
 @Injectable()
 export class NotificationsService {
@@ -15,6 +16,7 @@ export class NotificationsService {
     private readonly prisma: PrismaExceptionsService,
     private readonly notificationsGateway: NotificationsGateway,
     private readonly membersService: BoardMembersService,
+    private readonly taskService: TasksService,
   ) {}
 
   public async create(
@@ -152,6 +154,39 @@ export class NotificationsService {
       .catch((error) => {
         console.error(
           'Failed to get owner and managers ids at notifiactions service',
+          error,
+        );
+      });
+  }
+
+  public notifiTaskAssignees(obj: {
+    taskId: string;
+    userId: string;
+    type: NotificationType;
+    data?: {
+      [key: string]: string | number | boolean | [] | object;
+    };
+    message?: string;
+  }) {
+    this.taskService
+      .getTaskAssignees(obj.taskId)
+      .then((assignees) => {
+        assignees.forEach((assignee) => {
+          if (assignee.userId === obj.userId) return;
+          this.createAndSend([
+            {
+              userId: assignee.userId,
+              referenceId: obj.taskId,
+              type: obj.type,
+              data: obj.data,
+              message: obj.message,
+            },
+          ]);
+        });
+      })
+      .catch((error) => {
+        console.error(
+          'Failed to get task assigness at notifiactions service',
           error,
         );
       });
