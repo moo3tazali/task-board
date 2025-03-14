@@ -11,6 +11,7 @@ import {
   ListsModule,
   TasksModule,
   NotificationsModule,
+  LabelsModule,
 } from './modules';
 
 /**
@@ -39,6 +40,7 @@ import {
     BoardMembersModule,
     ListsModule,
     TasksModule,
+    LabelsModule,
   ],
 })
 export class AppModule {}

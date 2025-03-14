@@ -47,6 +47,7 @@ export class TasksService {
       this.db.task.findUniqueOrThrow({
         where: { id: taskId },
         include: {
+          labels: true,
           assignees: {
             select: {
               taskId: true,
@@ -131,6 +132,34 @@ export class TasksService {
         where: {
           taskId,
           userId: { in: membersIds },
+        },
+      }),
+    );
+  }
+
+  public async addLabels(
+    taskId: string,
+    labelsIds: string[],
+  ): Promise<void> {
+    await this.prisma.handle(() =>
+      this.db.taskLabel.createMany({
+        data: labelsIds.map((labelId) => ({ labelId, taskId })),
+        skipDuplicates: true,
+      }),
+    );
+  }
+
+  public async deleteLabels(
+    taskId: string,
+    labelsIds: string[],
+  ): Promise<void> {
+    await this.prisma.handle(() =>
+      this.db.taskLabel.deleteMany({
+        where: {
+          taskId,
+          labelId: {
+            in: labelsIds,
+          },
         },
       }),
     );

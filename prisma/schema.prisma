@@ -236,6 +236,7 @@ model Label {
 
   tasks TaskLabel[]
 
+  @@index([name])
   @@map("labels")
 }
 

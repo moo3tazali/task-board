@@ -16,6 +16,7 @@ import { BoardPermission, NotificationType } from '@prisma/client';
 import { TasksService } from './tasks.service';
 import { Auth, Permissions } from '../auth/decorators';
 import {
+  AddLabelsDto,
   AssignTaskDto,
   CreateTaskDto,
   MoveTaskDto,
@@ -204,6 +205,33 @@ export class TasksController {
   }
 
   /**
+   * Add labels to a task
+   */
+  @ApiBearerAuth()
+  @Permissions(BoardPermission.TASK_LABEL_CREATE)
+  @Post('labels')
+  public async addLabels(
+    @Param() _: BoardIdDto,
+    @Body() { labelsIds, taskId }: AddLabelsDto,
+  ) {
+    await this.tasksService.addLabels(taskId, labelsIds);
+  }
+
+  /**
+   * delete labels from a task
+   */
+  @ApiBearerAuth()
+  @Permissions(BoardPermission.TASK_LABEL_DELETE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete('labels')
+  public async deleteLabels(
+    @Param() _: BoardIdDto,
+    @Body() { labelsIds, taskId }: AddLabelsDto,
+  ) {
+    await this.tasksService.deleteLabels(taskId, labelsIds);
+  }
+
+  /**
    * Get a list of tasks for a specific list
    */
   @ApiBearerAuth()
@@ -243,6 +271,7 @@ export class TasksController {
    */
   @ApiBearerAuth()
   @Permissions(BoardPermission.TASK_DELETE)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':taskId')
   public async deleteTask(
     @Auth('id') userId: string,

@@ -6,3 +6,4 @@ export * from './board-members/board-members.module';
 export * from './lists/lists.module';
 export * from './tasks/tasks.module';
 export * from './notifications/notifications.module';
+export * from './labels/labels.module';

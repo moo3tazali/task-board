@@ -11,6 +11,19 @@ export class LabelsService {
     private readonly prisma: PrismaExceptionsService,
   ) {}
 
+  public async labelList(search?: string): Promise<Label[]> {
+    return this.prisma.handle(() =>
+      this.db.label.findMany({
+        where: {
+          name: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+      }),
+    );
+  }
+
   public async create(dto: { name: string }): Promise<Label> {
     return this.prisma.handle(() =>
       this.db.label.create({
