@@ -10,6 +10,9 @@ import { appMiddleware } from './middlewares';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // enable cors
+  app.enableCors();
+
   // use global validation pipe to validate DTOs in the controllers
   app.useGlobalPipes(
     new ValidationPipe({
